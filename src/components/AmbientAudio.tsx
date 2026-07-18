@@ -24,7 +24,7 @@ const CHORDS = [
 ];
 const BASS = [65.41, 55, 43.65, 49];
 const MELODY = [392, 440, 493.88, 523.25, 587.33, 523.25, 466.16, 392];
-const MAX_GAIN = 0.042;
+const MAX_GAIN = 0.18;
 const BPM = 82;
 const EIGHTH_NOTE = 60 / BPM / 2;
 const LOOKAHEAD_MS = 35;
@@ -68,7 +68,11 @@ function makeImpulse(context: AudioContext, seconds = 1.7, decay = 3.2) {
 }
 
 function createEngine(): SynthEngine {
-  const context = new AudioContext({ latencyHint: "playback" });
+  const AudioContextClass =
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) throw new Error("Web Audio is not supported in this browser.");
+  const context = new AudioContextClass({ latencyHint: "interactive" });
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const tone = context.createBiquadFilter();
@@ -91,15 +95,15 @@ function createEngine(): SynthEngine {
   tone.type = "lowpass";
   tone.frequency.value = 3450;
   tone.Q.value = 0.35;
-  padBus.gain.value = 0.22;
-  melodyBus.gain.value = 0.13;
-  drumBus.gain.value = 0.13;
-  noiseBus.gain.value = 0.012;
+  padBus.gain.value = 0.34;
+  melodyBus.gain.value = 0.22;
+  drumBus.gain.value = 0.2;
+  noiseBus.gain.value = 0.018;
   reverb.buffer = makeImpulse(context);
-  reverbReturn.gain.value = 0.18;
+  reverbReturn.gain.value = 0.22;
   delay.delayTime.value = 0.34;
   feedback.gain.value = 0.18;
-  delayReturn.gain.value = 0.15;
+  delayReturn.gain.value = 0.18;
 
   padBus.connect(tone);
   melodyBus.connect(tone);
@@ -276,7 +280,8 @@ export function AmbientAudio() {
   const engineRef = useRef<SynthEngine | null>(null);
   const suspendTimerRef = useRef<number>(0);
   const [enabled, setEnabled] = useState(false);
-  const [volume, setVolume] = useState(() => readStoredNumber("portfolio-ambience-volume", 0.34));
+  const [volume, setVolume] = useState(() => readStoredNumber("portfolio-ambience-volume", 0.55));
+  const [audioError, setAudioError] = useState("");
 
   const setMasterGain = useCallback((nextEnabled: boolean, nextVolume = volume) => {
     const engine = engineRef.current;
@@ -284,27 +289,45 @@ export function AmbientAudio() {
     const now = engine.context.currentTime;
     engine.master.gain.cancelScheduledValues(now);
     engine.master.gain.setValueAtTime(Math.max(engine.master.gain.value, 0.0001), now);
-    engine.master.gain.exponentialRampToValueAtTime(nextEnabled ? Math.max(nextVolume * MAX_GAIN, 0.0001) : 0.0001, now + 0.45);
+    engine.master.gain.exponentialRampToValueAtTime(nextEnabled ? Math.max(nextVolume * MAX_GAIN, 0.0001) : 0.0001, now + 0.24);
   }, [volume]);
 
   const start = useCallback(async () => {
     window.clearTimeout(suspendTimerRef.current);
+    setAudioError("");
     try {
       if (!engineRef.current) engineRef.current = createEngine();
       const engine = engineRef.current;
       await engine.context.resume();
-      engine.nextStepTime = Math.max(engine.nextStepTime, engine.context.currentTime + 0.05);
+      if (engine.context.state !== "running") {
+        throw new Error("The browser did not unlock audio playback.");
+      }
+
+      let startVolume = volume;
+      if (startVolume < 0.08) {
+        startVolume = 0.55;
+        setVolume(startVolume);
+        writeStoredValue("portfolio-ambience-volume", String(startVolume));
+      }
+
+      engine.nextStepTime = engine.context.currentTime + 0.05;
       if (!engine.timer) {
         runScheduler(engine);
         engine.timer = window.setInterval(() => runScheduler(engine), LOOKAHEAD_MS);
       }
-      setMasterGain(true);
+
+      // A soft confirmation note makes it obvious that the browser accepted the click.
+      scheduleKey(engine, engine.context.currentTime + 0.035, 392, true);
+      scheduleNoiseHit(engine, engine.context.currentTime + 0.08, "hat");
+      setMasterGain(true, startVolume);
       setEnabled(true);
       writeStoredValue("portfolio-ambience-preference", "on");
-    } catch {
+    } catch (error) {
+      console.warn("Midnight Radio could not start:", error);
       setEnabled(false);
+      setAudioError("AUDIO BLOCKED // CLICK TO RETRY");
     }
-  }, [setMasterGain]);
+  }, [setMasterGain, volume]);
 
   const stop = useCallback(() => {
     const engine = engineRef.current;
@@ -354,7 +377,7 @@ export function AmbientAudio() {
   }, []);
 
   return (
-    <div className={`audio-control ${enabled ? "playing" : ""}`}>
+    <div className={`audio-control ${enabled ? "playing" : ""} ${audioError ? "audio-error" : ""}`}>
       <button
         type="button"
         onClick={toggle}
@@ -362,7 +385,7 @@ export function AmbientAudio() {
         aria-label={enabled ? "Mute original Midnight Radio background music" : "Play original Midnight Radio background music"}
       >
         <span className="audio-icon" aria-hidden="true">{enabled ? "▮▮" : "▶"}</span>
-        <span className="audio-label"><b>MIDNIGHT RADIO</b><small>{enabled ? "ORIGINAL LOFI // ON AIR" : "ORIGINAL LOFI // PLAY"}</small></span>
+        <span className="audio-label"><b>MIDNIGHT RADIO</b><small>{audioError || (enabled ? "ORIGINAL LOFI // ON AIR" : "ORIGINAL LOFI // CLICK PLAY")}</small></span>
         <span className="audio-meter" aria-hidden="true"><i /><i /><i /><i /></span>
       </button>
       <label title="Background music volume">
@@ -373,7 +396,10 @@ export function AmbientAudio() {
           max="1"
           step="0.05"
           value={volume}
-          onChange={(event) => updateVolume(Number(event.target.value))}
+          onChange={(event) => {
+            setAudioError("");
+            updateVolume(Number(event.target.value));
+          }}
           aria-label="Background music volume"
         />
       </label>
