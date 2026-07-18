@@ -1,0 +1,14 @@
+node_modules/
+dist/
+server/data/*.sqlite
+server/data/*.sqlite-shm
+server/data/*.sqlite-wal
+.env
+.DS_Store
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+src/**/*.js
+src/**/*.d.ts
+server/**/*.js
+server/**/*.d.ts

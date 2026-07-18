@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tile" x1="72" y1="54" x2="446" y2="468" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#13263a"/>
+      <stop offset="0.55" stop-color="#081421"/>
+      <stop offset="1" stop-color="#050a12"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="104" y1="72" x2="410" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="0.48" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="edge2" x1="89" y1="76" x2="364" y2="411" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#0e7490"/>
+    </linearGradient>
+    <linearGradient id="face" x1="176" y1="112" x2="397" y2="421" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d3348"/>
+      <stop offset="0.6" stop-color="#0c1928"/>
+      <stop offset="1" stop-color="#07101a"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="172" y1="114" x2="408" y2="421" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.28" stop-color="#a7f3d0"/>
+      <stop offset="0.7" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="star" x1="205" y1="178" x2="340" y2="348" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#99f6e4"/>
+      <stop offset="0.5" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(270 267) rotate(90) scale(206)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14b8a6" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#14b8a6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="40" y="44" width="438" height="434" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity=".55"/>
+    </filter>
+  </defs>
+
+  <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#tile)"/>
+  <rect x="35" y="35" width="442" height="442" rx="105" fill="none" stroke="#5eead4" stroke-opacity=".24" stroke-width="6"/>
+  <circle cx="270" cy="267" r="206" fill="url(#glow)"/>
+
+  <g>
+    <rect x="112" y="112" width="228" height="292" rx="48" transform="rotate(-12 226 258)" fill="#061521" stroke="url(#edge2)" stroke-width="18"/>
+    <rect x="132" y="101" width="238" height="306" rx="50" transform="rotate(-7 251 254)" fill="#0a1a27" stroke="url(#edge)" stroke-width="17"/>
+    <rect x="164" y="91" width="260" height="324" rx="56" fill="url(#face)" stroke="url(#rim)" stroke-width="13"/>
+    <path d="M182 132c0-13 10-23 23-23h177c13 0 24 11 24 24v235c0 13-11 24-24 24H205c-13 0-23-10-23-23V132Z" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="7"/>
+  </g>
+
+  <path d="M288 168 316 235 383 263 316 291 288 358 260 291 193 263 260 235 288 168Z" fill="url(#star)"/>
+  <path d="M288 206 304 247 345 263 304 279 288 320 272 279 231 263 272 247 288 206Z" fill="#06121d" fill-opacity=".82"/>
+  <path d="M288 228 297 254 323 263 297 272 288 298 279 272 253 263 279 254 288 228Z" fill="#ccfbf1" fill-opacity=".9"/>
+</svg>

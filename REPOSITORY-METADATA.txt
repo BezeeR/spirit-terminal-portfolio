@@ -1,0 +1,14 @@
+Repository name:
+spirit-terminal-portfolio
+
+Description:
+Full-stack React, TypeScript, Node.js, Express, and SQLite portfolio with an original late-night project-arena aesthetic.
+
+Topics:
+react, typescript, vite, nodejs, express, sqlite, full-stack, portfolio, web-audio-api, responsive-design, accessibility, canvas-animation
+
+Release tag:
+v0.4.0
+
+Release title:
+Spirit Terminal: After Hours v0.4
