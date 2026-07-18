@@ -1,395 +1,694 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type SynthEngine = {
+const BPM = 74;
+const BEAT_LENGTH = 60 / BPM;
+const BAR_LENGTH = BEAT_LENGTH * 4;
+const SCHEDULE_INTERVAL_MS = 90;
+const SCHEDULE_AHEAD_SECONDS = 0.4;
+
+const VOLUME_KEY = "spirit-terminal-midnight-radio-volume";
+const DEFAULT_VOLUME = 0.34;
+
+interface AudioEngine {
   context: AudioContext;
   master: GainNode;
-  padOscillators: OscillatorNode[];
-  bassOscillator: OscillatorNode;
-  melodyBus: GainNode;
+  musicBus: GainNode;
   drumBus: GainNode;
-  noiseBus: GainNode;
+  noiseBuffer: AudioBuffer;
   timer: number;
-  nextStepTime: number;
-  chordIndex: number;
-  step: number;
-  drumNoise: AudioBuffer;
-  vinylSource: AudioBufferSourceNode;
-};
+  nextBarTime: number;
+  barIndex: number;
+}
 
-const CHORDS = [
-  [130.81, 164.81, 196, 246.94],
-  [110, 130.81, 164.81, 196],
-  [87.31, 110, 130.81, 164.81],
-  [98, 123.47, 146.83, 174.61]
+interface Chord {
+  notes: number[];
+  bass: number;
+}
+
+/**
+ * A minor-inspired progression:
+ * Am9 → Fmaj7 → Cmaj7 → G6
+ */
+const CHORD_PROGRESSION: Chord[] = [
+  {
+    notes: [220, 261.63, 329.63, 392, 493.88],
+    bass: 55,
+  },
+  {
+    notes: [174.61, 220, 261.63, 329.63],
+    bass: 43.65,
+  },
+  {
+    notes: [130.81, 196, 246.94, 329.63],
+    bass: 65.41,
+  },
+  {
+    notes: [196, 246.94, 293.66, 329.63],
+    bass: 49,
+  },
 ];
-const BASS = [65.41, 55, 43.65, 49];
-const MELODY = [392, 440, 493.88, 523.25, 587.33, 523.25, 466.16, 392];
-const MAX_GAIN = 0.18;
-const BPM = 82;
-const EIGHTH_NOTE = 60 / BPM / 2;
-const LOOKAHEAD_MS = 35;
-const SCHEDULE_AHEAD_SECONDS = 0.12;
 
-function readStoredNumber(key: string, fallback: number) {
-  try {
-    const value = Number(window.localStorage.getItem(key));
-    return Number.isFinite(value) && value >= 0 && value <= 1 ? value : fallback;
-  } catch {
-    return fallback;
+const MELODY_PATTERNS = [
+  [
+    { beat: 1.5, frequency: 659.25 },
+    { beat: 2.3, frequency: 587.33 },
+    { beat: 3.4, frequency: 493.88 },
+  ],
+  [],
+  [
+    { beat: 0.8, frequency: 523.25 },
+    { beat: 1.6, frequency: 493.88 },
+    { beat: 2.7, frequency: 392 },
+    { beat: 3.35, frequency: 440 },
+  ],
+  [],
+];
+
+function getSavedVolume(): number {
+  if (typeof window === "undefined") {
+    return DEFAULT_VOLUME;
   }
+
+  const savedValue = window.localStorage.getItem(VOLUME_KEY);
+
+  if (!savedValue) {
+    return DEFAULT_VOLUME;
+  }
+
+  const parsedValue = Number(savedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    return DEFAULT_VOLUME;
+  }
+
+  return Math.min(1, Math.max(0, parsedValue));
 }
 
-function writeStoredValue(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Storage may be unavailable in privacy modes.
+function getMasterVolume(value: number): number {
+  if (value <= 0) {
+    return 0.0001;
   }
+
+  return 0.05 + Math.pow(value, 1.25) * 0.65;
 }
 
-function makeNoiseBuffer(context: AudioContext, seconds: number) {
-  const buffer = context.createBuffer(1, Math.floor(context.sampleRate * seconds), context.sampleRate);
+function createNoiseBuffer(
+  context: AudioContext,
+  durationSeconds = 2,
+): AudioBuffer {
+  const frameCount = Math.ceil(context.sampleRate * durationSeconds);
+  const buffer = context.createBuffer(1, frameCount, context.sampleRate);
   const channel = buffer.getChannelData(0);
-  for (let index = 0; index < channel.length; index += 1) {
+
+  for (let index = 0; index < frameCount; index += 1) {
     channel[index] = Math.random() * 2 - 1;
   }
+
   return buffer;
 }
 
-function makeImpulse(context: AudioContext, seconds = 1.7, decay = 3.2) {
-  const impulse = context.createBuffer(2, Math.floor(context.sampleRate * seconds), context.sampleRate);
-  for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
-    const data = impulse.getChannelData(channel);
-    for (let index = 0; index < data.length; index += 1) {
-      data[index] = (Math.random() * 2 - 1) * Math.pow(1 - index / data.length, decay);
+function createReverbImpulse(
+  context: AudioContext,
+  durationSeconds = 1.9,
+  decay = 2.8,
+): AudioBuffer {
+  const frameCount = Math.ceil(context.sampleRate * durationSeconds);
+  const impulse = context.createBuffer(2, frameCount, context.sampleRate);
+
+  for (let channelIndex = 0; channelIndex < 2; channelIndex += 1) {
+    const channel = impulse.getChannelData(channelIndex);
+
+    for (let index = 0; index < frameCount; index += 1) {
+      const envelope = Math.pow(1 - index / frameCount, decay);
+      channel[index] = (Math.random() * 2 - 1) * envelope;
     }
   }
+
   return impulse;
 }
 
-function createEngine(): SynthEngine {
-  const AudioContextClass =
-    window.AudioContext ??
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) throw new Error("Web Audio is not supported in this browser.");
-  const context = new AudioContextClass({ latencyHint: "interactive" });
-  const master = context.createGain();
-  const compressor = context.createDynamicsCompressor();
-  const tone = context.createBiquadFilter();
-  const padBus = context.createGain();
-  const melodyBus = context.createGain();
-  const drumBus = context.createGain();
-  const noiseBus = context.createGain();
-  const reverb = context.createConvolver();
-  const reverbReturn = context.createGain();
-  const delay = context.createDelay(1.5);
+function playRhodesChord(
+  engine: AudioEngine,
+  startTime: number,
+  chord: Chord,
+): void {
+  const { context, musicBus } = engine;
+
+  const filter = context.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(1550, startTime);
+  filter.Q.setValueAtTime(0.55, startTime);
+
+  const chordGain = context.createGain();
+  chordGain.gain.setValueAtTime(0.0001, startTime);
+  chordGain.gain.exponentialRampToValueAtTime(0.17, startTime + 0.1);
+  chordGain.gain.exponentialRampToValueAtTime(0.075, startTime + 1.1);
+  chordGain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    startTime + BAR_LENGTH * 0.94,
+  );
+
+  filter.connect(chordGain);
+  chordGain.connect(musicBus);
+
+  chord.notes.forEach((frequency, noteIndex) => {
+    const sine = context.createOscillator();
+    const triangle = context.createOscillator();
+    const sineGain = context.createGain();
+    const triangleGain = context.createGain();
+
+    sine.type = "sine";
+    triangle.type = "triangle";
+
+    sine.frequency.setValueAtTime(frequency, startTime);
+    triangle.frequency.setValueAtTime(frequency, startTime);
+    triangle.detune.setValueAtTime(noteIndex % 2 === 0 ? 5 : -5, startTime);
+
+    sineGain.gain.setValueAtTime(0.12 / chord.notes.length, startTime);
+    triangleGain.gain.setValueAtTime(0.045 / chord.notes.length, startTime);
+
+    sine.connect(sineGain);
+    triangle.connect(triangleGain);
+    sineGain.connect(filter);
+    triangleGain.connect(filter);
+
+    sine.start(startTime);
+    triangle.start(startTime);
+    sine.stop(startTime + BAR_LENGTH);
+    triangle.stop(startTime + BAR_LENGTH);
+  });
+}
+
+function playBassNote(
+  engine: AudioEngine,
+  startTime: number,
+  frequency: number,
+  duration = BEAT_LENGTH * 1.45,
+): void {
+  const { context, musicBus } = engine;
+
+  const oscillator = context.createOscillator();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(190, startTime);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.048, startTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(filter);
+  filter.connect(gain);
+  gain.connect(musicBus);
+
+  oscillator.start(startTime);
+  oscillator.stop(startTime + duration + 0.05);
+}
+
+function playElectricKey(
+  engine: AudioEngine,
+  startTime: number,
+  frequency: number,
+): void {
+  const { context, musicBus } = engine;
+
+  const oscillator = context.createOscillator();
+  const harmonic = context.createOscillator();
+  const oscillatorGain = context.createGain();
+  const harmonicGain = context.createGain();
+  const outputGain = context.createGain();
+  const filter = context.createBiquadFilter();
+
+  oscillator.type = "sine";
+  harmonic.type = "triangle";
+
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+  harmonic.frequency.setValueAtTime(frequency * 2, startTime);
+
+  oscillatorGain.gain.setValueAtTime(0.75, startTime);
+  harmonicGain.gain.setValueAtTime(0.12, startTime);
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(2300, startTime);
+
+  outputGain.gain.setValueAtTime(0.0001, startTime);
+  outputGain.gain.exponentialRampToValueAtTime(0.042, startTime + 0.025);
+  outputGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
+
+  oscillator.connect(oscillatorGain);
+  harmonic.connect(harmonicGain);
+  oscillatorGain.connect(filter);
+  harmonicGain.connect(filter);
+  filter.connect(outputGain);
+  outputGain.connect(musicBus);
+
+  oscillator.start(startTime);
+  harmonic.start(startTime);
+  oscillator.stop(startTime + 1);
+  harmonic.stop(startTime + 1);
+}
+
+function playMelodyNote(
+  engine: AudioEngine,
+  startTime: number,
+  frequency: number,
+): void {
+  const { context, musicBus } = engine;
+
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const filter = context.createBiquadFilter();
+  const delay = context.createDelay(1);
   const feedback = context.createGain();
-  const delayReturn = context.createGain();
+  const delayGain = context.createGain();
 
-  master.gain.value = 0.0001;
-  compressor.threshold.value = -25;
-  compressor.knee.value = 20;
-  compressor.ratio.value = 3;
-  compressor.attack.value = 0.025;
-  compressor.release.value = 0.55;
-  tone.type = "lowpass";
-  tone.frequency.value = 3450;
-  tone.Q.value = 0.35;
-  padBus.gain.value = 0.34;
-  melodyBus.gain.value = 0.22;
-  drumBus.gain.value = 0.2;
-  noiseBus.gain.value = 0.018;
-  reverb.buffer = makeImpulse(context);
-  reverbReturn.gain.value = 0.22;
-  delay.delayTime.value = 0.34;
-  feedback.gain.value = 0.18;
-  delayReturn.gain.value = 0.18;
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+  oscillator.detune.setValueAtTime(-3, startTime);
 
-  padBus.connect(tone);
-  melodyBus.connect(tone);
-  drumBus.connect(tone);
-  noiseBus.connect(tone);
-  padBus.connect(reverb);
-  melodyBus.connect(reverb);
-  reverb.connect(reverbReturn);
-  reverbReturn.connect(tone);
-  melodyBus.connect(delay);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(2100, startTime);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.03, startTime + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.75);
+
+  delay.delayTime.setValueAtTime(BEAT_LENGTH * 0.75, startTime);
+  feedback.gain.setValueAtTime(0.18, startTime);
+  delayGain.gain.setValueAtTime(0.28, startTime);
+
+  oscillator.connect(filter);
+  filter.connect(gain);
+  gain.connect(musicBus);
+  gain.connect(delay);
+  delay.connect(delayGain);
+  delayGain.connect(musicBus);
   delay.connect(feedback);
   feedback.connect(delay);
-  delay.connect(delayReturn);
-  delayReturn.connect(tone);
-  tone.connect(master);
-  master.connect(compressor);
-  compressor.connect(context.destination);
 
-  const filterLfo = context.createOscillator();
-  const filterDepth = context.createGain();
-  filterLfo.type = "sine";
-  filterLfo.frequency.value = 0.027;
-  filterDepth.gain.value = 420;
-  filterLfo.connect(filterDepth);
-  filterDepth.connect(tone.frequency);
-  filterLfo.start();
+  oscillator.start(startTime);
+  oscillator.stop(startTime + 0.85);
+}
 
-  const padOscillators = CHORDS[0].map((frequency, index) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = index % 2 ? "triangle" : "sine";
-    oscillator.frequency.value = frequency;
-    oscillator.detune.value = [-8, 4, -3, 7][index];
-    gain.gain.value = [0.075, 0.05, 0.038, 0.025][index];
-    oscillator.connect(gain);
-    gain.connect(padBus);
-    oscillator.start();
-    return oscillator;
+function playKick(engine: AudioEngine, startTime: number): void {
+  const { context, drumBus } = engine;
+
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(82, startTime);
+  oscillator.frequency.exponentialRampToValueAtTime(48, startTime + 0.16);
+
+  gain.gain.setValueAtTime(0.035, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+
+  oscillator.connect(gain);
+  gain.connect(drumBus);
+
+  oscillator.start(startTime);
+  oscillator.stop(startTime + 0.24);
+}
+
+function playRim(engine: AudioEngine, startTime: number): void {
+  const { context, drumBus, noiseBuffer } = engine;
+
+  const noise = context.createBufferSource();
+  const bandpass = context.createBiquadFilter();
+  const highpass = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  noise.buffer = noiseBuffer;
+
+  bandpass.type = "bandpass";
+  bandpass.frequency.setValueAtTime(1750, startTime);
+  bandpass.Q.setValueAtTime(1.7, startTime);
+
+  highpass.type = "highpass";
+  highpass.frequency.setValueAtTime(650, startTime);
+
+  gain.gain.setValueAtTime(0.028, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.09);
+
+  noise.connect(bandpass);
+  bandpass.connect(highpass);
+  highpass.connect(gain);
+  gain.connect(drumBus);
+
+  noise.start(startTime, Math.random() * 1.5, 0.1);
+}
+
+function playHat(
+  engine: AudioEngine,
+  startTime: number,
+  accented = false,
+): void {
+  const { context, drumBus, noiseBuffer } = engine;
+
+  const noise = context.createBufferSource();
+  const highpass = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  noise.buffer = noiseBuffer;
+
+  highpass.type = "highpass";
+  highpass.frequency.setValueAtTime(6200, startTime);
+
+  gain.gain.setValueAtTime(accented ? 0.009 : 0.005, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.045);
+
+  noise.connect(highpass);
+  highpass.connect(gain);
+  gain.connect(drumBus);
+
+  noise.start(startTime, Math.random() * 1.5, 0.05);
+}
+
+function playVinylCrackle(engine: AudioEngine, startTime: number): void {
+  const { context, drumBus, noiseBuffer } = engine;
+
+  const noise = context.createBufferSource();
+  const highpass = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  noise.buffer = noiseBuffer;
+
+  highpass.type = "highpass";
+  highpass.frequency.setValueAtTime(3200, startTime);
+
+  gain.gain.setValueAtTime(0.0035, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.035);
+
+  noise.connect(highpass);
+  highpass.connect(gain);
+  gain.connect(drumBus);
+
+  noise.start(startTime, Math.random() * 1.5, 0.04);
+}
+
+function scheduleBar(
+  engine: AudioEngine,
+  startTime: number,
+  barIndex: number,
+): void {
+  const progressionIndex = barIndex % CHORD_PROGRESSION.length;
+  const chord = CHORD_PROGRESSION[progressionIndex];
+
+  playRhodesChord(engine, startTime, chord);
+
+  playBassNote(engine, startTime + BEAT_LENGTH * 0.05, chord.bass);
+  playBassNote(
+    engine,
+    startTime + BEAT_LENGTH * 2.5,
+    chord.bass * 1.5,
+    BEAT_LENGTH,
+  );
+
+  playElectricKey(
+    engine,
+    startTime + BEAT_LENGTH * 0.2,
+    chord.notes[1] ?? chord.notes[0],
+  );
+
+  playElectricKey(
+    engine,
+    startTime + BEAT_LENGTH * 2.65,
+    chord.notes[2] ?? chord.notes[0],
+  );
+
+  playKick(engine, startTime);
+  playKick(engine, startTime + BEAT_LENGTH * 2.75);
+
+  playRim(engine, startTime + BEAT_LENGTH);
+  playRim(engine, startTime + BEAT_LENGTH * 3);
+
+  for (let step = 0; step < 8; step += 1) {
+    const swing = step % 2 === 1 ? BEAT_LENGTH * 0.055 : 0;
+
+    playHat(
+      engine,
+      startTime + BEAT_LENGTH * 0.5 * step + swing,
+      step === 3 || step === 7,
+    );
+  }
+
+  const melody = MELODY_PATTERNS[progressionIndex];
+
+  melody.forEach((note) => {
+    playMelodyNote(engine, startTime + note.beat * BEAT_LENGTH, note.frequency);
   });
 
-  const bassOscillator = context.createOscillator();
-  const bassFilter = context.createBiquadFilter();
-  const bassGain = context.createGain();
-  bassOscillator.type = "sine";
-  bassOscillator.frequency.value = BASS[0];
-  bassFilter.type = "lowpass";
-  bassFilter.frequency.value = 165;
-  bassGain.gain.value = 0.048;
-  bassOscillator.connect(bassFilter);
-  bassFilter.connect(bassGain);
-  bassGain.connect(tone);
-  bassOscillator.start();
-
-  const vinylSource = context.createBufferSource();
-  const vinylFilter = context.createBiquadFilter();
-  const vinylGain = context.createGain();
-  vinylSource.buffer = makeNoiseBuffer(context, 4);
-  vinylSource.loop = true;
-  vinylFilter.type = "bandpass";
-  vinylFilter.frequency.value = 1800;
-  vinylFilter.Q.value = 0.42;
-  vinylGain.gain.value = 0.012;
-  vinylSource.connect(vinylFilter);
-  vinylFilter.connect(vinylGain);
-  vinylGain.connect(noiseBus);
-  vinylSource.start();
-
-  return {
-    context,
-    master,
-    padOscillators,
-    bassOscillator,
-    melodyBus,
-    drumBus,
-    noiseBus,
-    timer: 0,
-    nextStepTime: context.currentTime + 0.06,
-    chordIndex: 0,
-    step: 0,
-    drumNoise: makeNoiseBuffer(context, 0.45),
-    vinylSource
-  };
+  playVinylCrackle(engine, startTime + BEAT_LENGTH * 0.65);
+  playVinylCrackle(engine, startTime + BEAT_LENGTH * 2.2);
 }
 
-function scheduleKick(engine: SynthEngine, time: number, volume = 0.42) {
-  const oscillator = engine.context.createOscillator();
-  const gain = engine.context.createGain();
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(105, time);
-  oscillator.frequency.exponentialRampToValueAtTime(44, time + 0.13);
-  gain.gain.setValueAtTime(volume, time);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.23);
-  oscillator.connect(gain);
-  gain.connect(engine.drumBus);
-  oscillator.start(time);
-  oscillator.stop(time + 0.25);
-}
+function runScheduler(engine: AudioEngine): void {
+  const scheduleLimit =
+    engine.context.currentTime + SCHEDULE_AHEAD_SECONDS;
 
-function scheduleNoiseHit(engine: SynthEngine, time: number, type: "snare" | "hat", open = false) {
-  const source = engine.context.createBufferSource();
-  const filter = engine.context.createBiquadFilter();
-  const gain = engine.context.createGain();
-  source.buffer = engine.drumNoise;
-  filter.type = "highpass";
-  filter.frequency.value = type === "snare" ? 1150 : 5600;
-  const peak = type === "snare" ? 0.14 : open ? 0.042 : 0.027;
-  const length = type === "snare" ? 0.16 : open ? 0.12 : 0.045;
-  gain.gain.setValueAtTime(peak, time);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + length);
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(engine.drumBus);
-  source.start(time);
-  source.stop(time + length + 0.02);
-}
-
-function scheduleKey(engine: SynthEngine, time: number, frequency: number, soft = false) {
-  const oscillator = engine.context.createOscillator();
-  const overtone = engine.context.createOscillator();
-  const filter = engine.context.createBiquadFilter();
-  const gain = engine.context.createGain();
-  oscillator.type = "triangle";
-  overtone.type = "sine";
-  oscillator.frequency.value = frequency;
-  oscillator.detune.value = -7;
-  overtone.frequency.value = frequency * 2;
-  filter.type = "lowpass";
-  filter.frequency.value = soft ? 1050 : 1450;
-  gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.exponentialRampToValueAtTime(soft ? 0.026 : 0.045, time + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.95);
-  oscillator.connect(filter);
-  overtone.connect(filter);
-  filter.connect(gain);
-  gain.connect(engine.melodyBus);
-  oscillator.start(time);
-  overtone.start(time);
-  oscillator.stop(time + 1);
-  overtone.stop(time + 1);
-}
-
-function scheduleStep(engine: SynthEngine, step: number, time: number) {
-  const position = step % 16;
-  if (position === 0) {
-    engine.chordIndex = (engine.chordIndex + 1) % CHORDS.length;
-    engine.padOscillators.forEach((oscillator, index) => {
-      oscillator.frequency.cancelScheduledValues(time);
-      oscillator.frequency.exponentialRampToValueAtTime(CHORDS[engine.chordIndex][index], time + 1.8);
-    });
-    engine.bassOscillator.frequency.cancelScheduledValues(time);
-    engine.bassOscillator.frequency.exponentialRampToValueAtTime(BASS[engine.chordIndex], time + 1.8);
-  }
-
-  if (position === 0 || position === 8) scheduleKick(engine, time, position === 0 ? 0.4 : 0.31);
-  if (position === 11) scheduleKick(engine, time, 0.12);
-  if (position === 4 || position === 12) scheduleNoiseHit(engine, time, "snare");
-  if (position % 2 === 0) scheduleNoiseHit(engine, time, "hat", position === 14);
-  if ([1, 5, 9, 13].includes(position)) {
-    const melodyIndex = (engine.chordIndex * 2 + Math.floor(position / 4)) % MELODY.length;
-    scheduleKey(engine, time, MELODY[melodyIndex] * (position === 13 ? 0.5 : 1), position === 9);
+  while (engine.nextBarTime < scheduleLimit) {
+    scheduleBar(engine, engine.nextBarTime, engine.barIndex);
+    engine.nextBarTime += BAR_LENGTH;
+    engine.barIndex += 1;
   }
 }
 
-function runScheduler(engine: SynthEngine) {
-  while (engine.nextStepTime < engine.context.currentTime + SCHEDULE_AHEAD_SECONDS) {
-    scheduleStep(engine, engine.step, engine.nextStepTime);
-    const swing = engine.step % 2 === 0 ? 1.11 : 0.89;
-    engine.nextStepTime += EIGHTH_NOTE * swing;
-    engine.step += 1;
-  }
+function destroyEngine(engine: AudioEngine): void {
+  window.clearInterval(engine.timer);
+
+  const now = engine.context.currentTime;
+
+  engine.master.gain.cancelScheduledValues(now);
+  engine.master.gain.setValueAtTime(
+    Math.max(engine.master.gain.value, 0.0001),
+    now,
+  );
+  engine.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+  window.setTimeout(() => {
+    if (engine.context.state !== "closed") {
+      void engine.context.close();
+    }
+  }, 420);
 }
 
 export function AmbientAudio() {
-  const engineRef = useRef<SynthEngine | null>(null);
-  const suspendTimerRef = useRef<number>(0);
-  const [enabled, setEnabled] = useState(false);
-  const [volume, setVolume] = useState(() => readStoredNumber("portfolio-ambience-volume", 0.55));
-  const [audioError, setAudioError] = useState("");
+  const engineRef = useRef<AudioEngine | null>(null);
 
-  const setMasterGain = useCallback((nextEnabled: boolean, nextVolume = volume) => {
+  const [enabled, setEnabled] = useState(false);
+  const [volume, setVolume] = useState(getSavedVolume);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const updateVolume = useCallback((nextVolume: number) => {
+    const safeVolume = Math.min(1, Math.max(0, nextVolume));
+
+    setVolume(safeVolume);
+    window.localStorage.setItem(VOLUME_KEY, String(safeVolume));
+
     const engine = engineRef.current;
-    if (!engine) return;
+
+    if (!engine) {
+      return;
+    }
+
     const now = engine.context.currentTime;
+    const target = getMasterVolume(safeVolume);
+
     engine.master.gain.cancelScheduledValues(now);
-    engine.master.gain.setValueAtTime(Math.max(engine.master.gain.value, 0.0001), now);
-    engine.master.gain.exponentialRampToValueAtTime(nextEnabled ? Math.max(nextVolume * MAX_GAIN, 0.0001) : 0.0001, now + 0.24);
+    engine.master.gain.setTargetAtTime(target, now, 0.08);
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    const engine = engineRef.current;
+
+    if (engine) {
+      destroyEngine(engine);
+      engineRef.current = null;
+    }
+
+    setEnabled(false);
+  }, []);
+
+  const startAudio = useCallback(async () => {
+    try {
+      setAudioError(null);
+
+      const AudioContextConstructor: typeof AudioContext | undefined =
+        window.AudioContext ??
+        (window as Window & {
+          webkitAudioContext?: typeof AudioContext;
+        }).webkitAudioContext;
+
+      if (!AudioContextConstructor) {
+        throw new Error("This browser does not support Web Audio.");
+      }
+
+      if (engineRef.current) {
+        destroyEngine(engineRef.current);
+        engineRef.current = null;
+      }
+
+      const context = new AudioContextConstructor();
+
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      const master = context.createGain();
+      const musicBus = context.createGain();
+      const drumBus = context.createGain();
+      const compressor = context.createDynamicsCompressor();
+      const reverb = context.createConvolver();
+      const reverbGain = context.createGain();
+
+      reverb.buffer = createReverbImpulse(context);
+      reverbGain.gain.setValueAtTime(0.17, context.currentTime);
+      musicBus.gain.setValueAtTime(0.88, context.currentTime);
+      drumBus.gain.setValueAtTime(0.72, context.currentTime);
+
+      compressor.threshold.setValueAtTime(-18, context.currentTime);
+      compressor.knee.setValueAtTime(20, context.currentTime);
+      compressor.ratio.setValueAtTime(4, context.currentTime);
+      compressor.attack.setValueAtTime(0.008, context.currentTime);
+      compressor.release.setValueAtTime(0.24, context.currentTime);
+
+      master.gain.setValueAtTime(0.0001, context.currentTime);
+      master.gain.exponentialRampToValueAtTime(
+        getMasterVolume(volume),
+        context.currentTime + 1.1,
+      );
+
+      musicBus.connect(master);
+      musicBus.connect(reverb);
+      reverb.connect(reverbGain);
+      reverbGain.connect(master);
+      drumBus.connect(master);
+      master.connect(compressor);
+      compressor.connect(context.destination);
+
+      const engine: AudioEngine = {
+        context,
+        master,
+        musicBus,
+        drumBus,
+        noiseBuffer: createNoiseBuffer(context),
+        timer: 0,
+        nextBarTime: context.currentTime + 0.08,
+        barIndex: 0,
+      };
+
+      engine.timer = window.setInterval(() => {
+        runScheduler(engine);
+      }, SCHEDULE_INTERVAL_MS);
+
+      engineRef.current = engine;
+      runScheduler(engine);
+      setEnabled(true);
+    } catch (error) {
+      console.error("Unable to start Midnight Radio:", error);
+
+      const message =
+        error instanceof Error ? error.message : "Audio could not be started.";
+
+      setAudioError(message);
+      setEnabled(false);
+    }
   }, [volume]);
 
-  const start = useCallback(async () => {
-    window.clearTimeout(suspendTimerRef.current);
-    setAudioError("");
-    try {
-      if (!engineRef.current) engineRef.current = createEngine();
-      const engine = engineRef.current;
-      await engine.context.resume();
-      if (engine.context.state !== "running") {
-        throw new Error("The browser did not unlock audio playback.");
-      }
-
-      let startVolume = volume;
-      if (startVolume < 0.08) {
-        startVolume = 0.55;
-        setVolume(startVolume);
-        writeStoredValue("portfolio-ambience-volume", String(startVolume));
-      }
-
-      engine.nextStepTime = engine.context.currentTime + 0.05;
-      if (!engine.timer) {
-        runScheduler(engine);
-        engine.timer = window.setInterval(() => runScheduler(engine), LOOKAHEAD_MS);
-      }
-
-      // A soft confirmation note makes it obvious that the browser accepted the click.
-      scheduleKey(engine, engine.context.currentTime + 0.035, 392, true);
-      scheduleNoiseHit(engine, engine.context.currentTime + 0.08, "hat");
-      setMasterGain(true, startVolume);
-      setEnabled(true);
-      writeStoredValue("portfolio-ambience-preference", "on");
-    } catch (error) {
-      console.warn("Midnight Radio could not start:", error);
-      setEnabled(false);
-      setAudioError("AUDIO BLOCKED // CLICK TO RETRY");
+  const toggle = useCallback(() => {
+    if (enabled) {
+      stopAudio();
+      return;
     }
-  }, [setMasterGain, volume]);
 
-  const stop = useCallback(() => {
-    const engine = engineRef.current;
-    setMasterGain(false);
-    setEnabled(false);
-    writeStoredValue("portfolio-ambience-preference", "off");
-    if (!engine) return;
-    window.clearInterval(engine.timer);
-    engine.timer = 0;
-    window.clearTimeout(suspendTimerRef.current);
-    suspendTimerRef.current = window.setTimeout(() => void engine.context.suspend(), 520);
-  }, [setMasterGain]);
-
-  const toggle = () => enabled ? stop() : void start();
-  const updateVolume = (nextVolume: number) => {
-    setVolume(nextVolume);
-    writeStoredValue("portfolio-ambience-volume", String(nextVolume));
-    if (enabled) setMasterGain(true, nextVolume);
-  };
+    void startAudio();
+  }, [enabled, startAudio, stopAudio]);
 
   useEffect(() => {
-    const handleVisibility = () => {
+    const handleVisibilityChange = () => {
       const engine = engineRef.current;
-      if (!engine || !enabled) return;
+
+      if (!engine) {
+        return;
+      }
+
       if (document.hidden) {
-        window.clearInterval(engine.timer);
-        engine.timer = 0;
         void engine.context.suspend();
-      } else {
-        void engine.context.resume().then(() => {
-          engine.nextStepTime = engine.context.currentTime + 0.06;
-          engine.timer = window.setInterval(() => runScheduler(engine), LOOKAHEAD_MS);
-        });
+      } else if (enabled) {
+        void engine.context.resume();
       }
     };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [enabled]);
 
-  useEffect(() => () => {
-    window.clearTimeout(suspendTimerRef.current);
-    const engine = engineRef.current;
-    if (!engine) return;
-    window.clearInterval(engine.timer);
-    try { engine.vinylSource.stop(); } catch { /* already stopped */ }
-    void engine.context.close();
+  useEffect(() => {
+    return () => {
+      const engine = engineRef.current;
+
+      if (engine) {
+        window.clearInterval(engine.timer);
+
+        if (engine.context.state !== "closed") {
+          void engine.context.close();
+        }
+
+        engineRef.current = null;
+      }
+    };
   }, []);
 
   return (
-    <div className={`audio-control ${enabled ? "playing" : ""} ${audioError ? "audio-error" : ""}`}>
+    <div
+      className={`audio-control${enabled ? " playing" : ""}${
+        audioError ? " audio-error" : ""
+      }`}
+    >
       <button
         type="button"
         onClick={toggle}
         aria-pressed={enabled}
-        aria-label={enabled ? "Mute original Midnight Radio background music" : "Play original Midnight Radio background music"}
+        aria-label={
+          enabled
+            ? "Pause Midnight Radio background music"
+            : "Play Midnight Radio background music"
+        }
       >
-        <span className="audio-icon" aria-hidden="true">{enabled ? "▮▮" : "▶"}</span>
-        <span className="audio-label"><b>MIDNIGHT RADIO</b><small>{audioError || (enabled ? "ORIGINAL LOFI // ON AIR" : "ORIGINAL LOFI // CLICK PLAY")}</small></span>
-        <span className="audio-meter" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span className="audio-icon" aria-hidden="true">
+          {enabled ? "Ⅱ" : "▶"}
+        </span>
+
+        <span className="audio-label">
+          <b>MIDNIGHT RADIO</b>
+          <small>
+            {audioError
+              ? "Audio unavailable — click to retry"
+              : enabled
+                ? "Late-night coding mix playing"
+                : "Play late-night coding mix"}
+          </small>
+        </span>
+
+        <span className="audio-meter" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
       </button>
+
       <label title="Background music volume">
         <span className="sr-only">Background music volume</span>
+
         <input
           type="range"
           min="0"
@@ -397,8 +696,8 @@ export function AmbientAudio() {
           step="0.05"
           value={volume}
           onChange={(event) => {
-            setAudioError("");
-            updateVolume(Number(event.target.value));
+            setAudioError(null);
+            updateVolume(Number(event.currentTarget.value));
           }}
           aria-label="Background music volume"
         />
@@ -406,3 +705,5 @@ export function AmbientAudio() {
     </div>
   );
 }
+
+export default AmbientAudio;
