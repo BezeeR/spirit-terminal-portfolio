@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const BPM = 74;
+const BPM = 70;
 const BEAT_LENGTH = 60 / BPM;
 const BAR_LENGTH = BEAT_LENGTH * 4;
 const SCHEDULE_INTERVAL_MS = 90;
-const SCHEDULE_AHEAD_SECONDS = 0.4;
+const SCHEDULE_AHEAD_SECONDS = 0.45;
+const FADE_IN_SECONDS = 2.8;
+const FADE_OUT_SECONDS = 1.65;
 
 const VOLUME_KEY = "spirit-terminal-midnight-radio-volume";
 const DEFAULT_VOLUME = 0.34;
@@ -14,6 +16,8 @@ interface AudioEngine {
   master: GainNode;
   musicBus: GainNode;
   drumBus: GainNode;
+  reverbSend: GainNode;
+  delaySend: GainNode;
   noiseBuffer: AudioBuffer;
   timer: number;
   nextBarTime: number;
@@ -21,48 +25,55 @@ interface AudioEngine {
 }
 
 interface Chord {
-  notes: number[];
+  pad: number[];
+  arp: number[];
   bass: number;
+  bassAccent: number;
+}
+
+interface MelodyNote {
+  beat: number;
+  midi: number;
+  duration: number;
+}
+
+function midiToFrequency(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
 /**
- * A minor-inspired progression:
- * Am9 → Fmaj7 → Cmaj7 → G6
+ * Original eight-bar late-night progression centered around D minor / F major.
+ * The voicings deliberately leave room between the pad, arpeggio, and bass.
  */
 const CHORD_PROGRESSION: Chord[] = [
-  {
-    notes: [220, 261.63, 329.63, 392, 493.88],
-    bass: 55,
-  },
-  {
-    notes: [174.61, 220, 261.63, 329.63],
-    bass: 43.65,
-  },
-  {
-    notes: [130.81, 196, 246.94, 329.63],
-    bass: 65.41,
-  },
-  {
-    notes: [196, 246.94, 293.66, 329.63],
-    bass: 49,
-  },
+  { pad: [50, 53, 57, 60, 64], arp: [57, 60, 64, 65, 69], bass: 38, bassAccent: 45 },
+  { pad: [46, 50, 53, 57, 60], arp: [53, 57, 60, 62, 65], bass: 34, bassAccent: 41 },
+  { pad: [41, 45, 48, 52, 55], arp: [52, 55, 57, 60, 64], bass: 29, bassAccent: 36 },
+  { pad: [48, 52, 55, 59, 62], arp: [55, 59, 62, 64, 67], bass: 36, bassAccent: 43 },
+  { pad: [43, 46, 50, 53, 57], arp: [50, 53, 57, 58, 62], bass: 31, bassAccent: 38 },
+  { pad: [46, 50, 53, 57, 60], arp: [53, 57, 60, 62, 65], bass: 34, bassAccent: 41 },
+  { pad: [45, 48, 53, 55, 60], arp: [53, 55, 57, 60, 64], bass: 33, bassAccent: 40 },
+  { pad: [48, 50, 55, 57, 62], arp: [55, 57, 60, 62, 67], bass: 36, bassAccent: 43 },
 ];
 
-const MELODY_PATTERNS = [
-  [
-    { beat: 1.5, frequency: 659.25 },
-    { beat: 2.3, frequency: 587.33 },
-    { beat: 3.4, frequency: 493.88 },
-  ],
-  [],
-  [
-    { beat: 0.8, frequency: 523.25 },
-    { beat: 1.6, frequency: 493.88 },
-    { beat: 2.7, frequency: 392 },
-    { beat: 3.35, frequency: 440 },
-  ],
-  [],
+const ARPEGGIO_PATTERNS = [
+  [0, 2, 1, -1, 3, 2, 4, -1],
+  [0, 1, 3, -1, 2, 4, 3, -1],
 ];
+
+const LEAD_MOTIFS: Record<number, MelodyNote[]> = {
+  2: [
+    { beat: 0.65, midi: 76, duration: 0.8 },
+    { beat: 1.75, midi: 72, duration: 0.7 },
+    { beat: 2.8, midi: 69, duration: 0.95 },
+  ],
+  6: [
+    { beat: 0.45, midi: 72, duration: 0.65 },
+    { beat: 1.35, midi: 74, duration: 0.65 },
+    { beat: 2.25, midi: 69, duration: 0.75 },
+    { beat: 3.15, midi: 67, duration: 0.7 },
+  ],
+};
 
 function getSavedVolume(): number {
   if (typeof window === "undefined") {
@@ -89,12 +100,12 @@ function getMasterVolume(value: number): number {
     return 0.0001;
   }
 
-  return 0.05 + Math.pow(value, 1.25) * 0.65;
+  return 0.035 + Math.pow(value, 1.28) * 0.48;
 }
 
 function createNoiseBuffer(
   context: AudioContext,
-  durationSeconds = 2,
+  durationSeconds = 1,
 ): AudioBuffer {
   const frameCount = Math.ceil(context.sampleRate * durationSeconds);
   const buffer = context.createBuffer(1, frameCount, context.sampleRate);
@@ -109,8 +120,8 @@ function createNoiseBuffer(
 
 function createReverbImpulse(
   context: AudioContext,
-  durationSeconds = 1.9,
-  decay = 2.8,
+  durationSeconds = 2.35,
+  decay = 3.25,
 ): AudioBuffer {
   const frameCount = Math.ceil(context.sampleRate * durationSeconds);
   const impulse = context.createBuffer(2, frameCount, context.sampleRate);
@@ -127,31 +138,45 @@ function createReverbImpulse(
   return impulse;
 }
 
-function playRhodesChord(
+function connectWithReverb(
+  source: AudioNode,
+  engine: AudioEngine,
+  reverbAmount: number,
+): void {
+  const send = engine.context.createGain();
+  send.gain.value = reverbAmount;
+
+  source.connect(engine.musicBus);
+  source.connect(send);
+  send.connect(engine.reverbSend);
+}
+
+function playPadChord(
   engine: AudioEngine,
   startTime: number,
   chord: Chord,
 ): void {
-  const { context, musicBus } = engine;
-
+  const { context } = engine;
   const filter = context.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.setValueAtTime(1550, startTime);
-  filter.Q.setValueAtTime(0.55, startTime);
-
   const chordGain = context.createGain();
+  const duration = BAR_LENGTH * 0.91;
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(920, startTime);
+  filter.frequency.linearRampToValueAtTime(1450, startTime + BEAT_LENGTH * 1.7);
+  filter.frequency.linearRampToValueAtTime(1050, startTime + duration);
+  filter.Q.setValueAtTime(0.5, startTime);
+
   chordGain.gain.setValueAtTime(0.0001, startTime);
-  chordGain.gain.exponentialRampToValueAtTime(0.17, startTime + 0.1);
-  chordGain.gain.exponentialRampToValueAtTime(0.075, startTime + 1.1);
-  chordGain.gain.exponentialRampToValueAtTime(
-    0.0001,
-    startTime + BAR_LENGTH * 0.94,
-  );
+  chordGain.gain.exponentialRampToValueAtTime(0.125, startTime + 0.42);
+  chordGain.gain.exponentialRampToValueAtTime(0.082, startTime + BEAT_LENGTH * 1.45);
+  chordGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
   filter.connect(chordGain);
-  chordGain.connect(musicBus);
+  connectWithReverb(chordGain, engine, 0.48);
 
-  chord.notes.forEach((frequency, noteIndex) => {
+  chord.pad.forEach((midi, noteIndex) => {
+    const frequency = midiToFrequency(midi);
     const sine = context.createOscillator();
     const triangle = context.createOscillator();
     const sineGain = context.createGain();
@@ -162,10 +187,10 @@ function playRhodesChord(
 
     sine.frequency.setValueAtTime(frequency, startTime);
     triangle.frequency.setValueAtTime(frequency, startTime);
-    triangle.detune.setValueAtTime(noteIndex % 2 === 0 ? 5 : -5, startTime);
+    triangle.detune.setValueAtTime(noteIndex % 2 === 0 ? -4 : 4, startTime);
 
-    sineGain.gain.setValueAtTime(0.12 / chord.notes.length, startTime);
-    triangleGain.gain.setValueAtTime(0.045 / chord.notes.length, startTime);
+    sineGain.gain.setValueAtTime(0.52 / chord.pad.length, startTime);
+    triangleGain.gain.setValueAtTime(0.18 / chord.pad.length, startTime);
 
     sine.connect(sineGain);
     triangle.connect(triangleGain);
@@ -174,172 +199,200 @@ function playRhodesChord(
 
     sine.start(startTime);
     triangle.start(startTime);
-    sine.stop(startTime + BAR_LENGTH);
-    triangle.stop(startTime + BAR_LENGTH);
+    sine.stop(startTime + duration + 0.08);
+    triangle.stop(startTime + duration + 0.08);
   });
+}
+
+function playArpeggioNote(
+  engine: AudioEngine,
+  startTime: number,
+  midi: number,
+  accented: boolean,
+): void {
+  const { context } = engine;
+  const oscillator = context.createOscillator();
+  const overtone = context.createOscillator();
+  const overtoneGain = context.createGain();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  const duration = BEAT_LENGTH * 0.44;
+
+  oscillator.type = "triangle";
+  overtone.type = "sine";
+  oscillator.frequency.setValueAtTime(midiToFrequency(midi), startTime);
+  overtone.frequency.setValueAtTime(midiToFrequency(midi + 12), startTime);
+  overtoneGain.gain.setValueAtTime(0.12, startTime);
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(2450, startTime);
+  filter.Q.setValueAtTime(0.7, startTime);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(
+    accented ? 0.024 : 0.017,
+    startTime + 0.018,
+  );
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(filter);
+  overtone.connect(overtoneGain);
+  overtoneGain.connect(filter);
+  filter.connect(gain);
+  connectWithReverb(gain, engine, 0.34);
+
+  oscillator.start(startTime);
+  overtone.start(startTime);
+  oscillator.stop(startTime + duration + 0.04);
+  overtone.stop(startTime + duration + 0.04);
 }
 
 function playBassNote(
   engine: AudioEngine,
   startTime: number,
-  frequency: number,
-  duration = BEAT_LENGTH * 1.45,
+  midi: number,
+  duration: number,
+  level = 0.058,
 ): void {
   const { context, musicBus } = engine;
-
-  const oscillator = context.createOscillator();
+  const fundamental = context.createOscillator();
+  const harmonic = context.createOscillator();
+  const harmonicGain = context.createGain();
   const filter = context.createBiquadFilter();
   const gain = context.createGain();
+  const frequency = midiToFrequency(midi);
 
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(frequency, startTime);
+  fundamental.type = "sine";
+  harmonic.type = "triangle";
+  fundamental.frequency.setValueAtTime(frequency, startTime);
+  harmonic.frequency.setValueAtTime(frequency * 2, startTime);
+  harmonicGain.gain.setValueAtTime(0.11, startTime);
 
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(190, startTime);
+  filter.frequency.setValueAtTime(205, startTime);
+  filter.Q.setValueAtTime(0.55, startTime);
 
   gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.048, startTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(level, startTime + 0.045);
+  gain.gain.exponentialRampToValueAtTime(level * 0.56, startTime + duration * 0.42);
   gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-  oscillator.connect(filter);
+  fundamental.connect(filter);
+  harmonic.connect(harmonicGain);
+  harmonicGain.connect(filter);
   filter.connect(gain);
   gain.connect(musicBus);
 
-  oscillator.start(startTime);
-  oscillator.stop(startTime + duration + 0.05);
-}
-
-function playElectricKey(
-  engine: AudioEngine,
-  startTime: number,
-  frequency: number,
-): void {
-  const { context, musicBus } = engine;
-
-  const oscillator = context.createOscillator();
-  const harmonic = context.createOscillator();
-  const oscillatorGain = context.createGain();
-  const harmonicGain = context.createGain();
-  const outputGain = context.createGain();
-  const filter = context.createBiquadFilter();
-
-  oscillator.type = "sine";
-  harmonic.type = "triangle";
-
-  oscillator.frequency.setValueAtTime(frequency, startTime);
-  harmonic.frequency.setValueAtTime(frequency * 2, startTime);
-
-  oscillatorGain.gain.setValueAtTime(0.75, startTime);
-  harmonicGain.gain.setValueAtTime(0.12, startTime);
-
-  filter.type = "lowpass";
-  filter.frequency.setValueAtTime(2300, startTime);
-
-  outputGain.gain.setValueAtTime(0.0001, startTime);
-  outputGain.gain.exponentialRampToValueAtTime(0.042, startTime + 0.025);
-  outputGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
-
-  oscillator.connect(oscillatorGain);
-  harmonic.connect(harmonicGain);
-  oscillatorGain.connect(filter);
-  harmonicGain.connect(filter);
-  filter.connect(outputGain);
-  outputGain.connect(musicBus);
-
-  oscillator.start(startTime);
+  fundamental.start(startTime);
   harmonic.start(startTime);
-  oscillator.stop(startTime + 1);
-  harmonic.stop(startTime + 1);
+  fundamental.stop(startTime + duration + 0.05);
+  harmonic.stop(startTime + duration + 0.05);
 }
 
-function playMelodyNote(
+function playLeadNote(
   engine: AudioEngine,
   startTime: number,
-  frequency: number,
+  midi: number,
+  durationInBeats: number,
 ): void {
-  const { context, musicBus } = engine;
-
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
+  const { context, delaySend } = engine;
+  const sine = context.createOscillator();
+  const triangle = context.createOscillator();
+  const triangleGain = context.createGain();
   const filter = context.createBiquadFilter();
-  const delay = context.createDelay(1);
-  const feedback = context.createGain();
-  const delayGain = context.createGain();
+  const gain = context.createGain();
+  const delayAmount = context.createGain();
+  const duration = durationInBeats * BEAT_LENGTH;
+  const frequency = midiToFrequency(midi);
 
-  oscillator.type = "triangle";
-  oscillator.frequency.setValueAtTime(frequency, startTime);
-  oscillator.detune.setValueAtTime(-3, startTime);
+  sine.type = "sine";
+  triangle.type = "triangle";
+  sine.frequency.setValueAtTime(frequency, startTime);
+  triangle.frequency.setValueAtTime(frequency, startTime);
+  triangle.detune.setValueAtTime(5, startTime);
+  triangleGain.gain.setValueAtTime(0.14, startTime);
 
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(2100, startTime);
+  filter.frequency.setValueAtTime(1850, startTime);
+  filter.frequency.linearRampToValueAtTime(2550, startTime + duration * 0.55);
+  filter.Q.setValueAtTime(0.65, startTime);
 
   gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.03, startTime + 0.08);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.75);
+  gain.gain.exponentialRampToValueAtTime(0.027, startTime + 0.11);
+  gain.gain.exponentialRampToValueAtTime(0.016, startTime + duration * 0.58);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-  delay.delayTime.setValueAtTime(BEAT_LENGTH * 0.75, startTime);
-  feedback.gain.setValueAtTime(0.18, startTime);
-  delayGain.gain.setValueAtTime(0.28, startTime);
+  delayAmount.gain.setValueAtTime(0.42, startTime);
 
-  oscillator.connect(filter);
+  sine.connect(filter);
+  triangle.connect(triangleGain);
+  triangleGain.connect(filter);
   filter.connect(gain);
-  gain.connect(musicBus);
-  gain.connect(delay);
-  delay.connect(delayGain);
-  delayGain.connect(musicBus);
-  delay.connect(feedback);
-  feedback.connect(delay);
+  connectWithReverb(gain, engine, 0.58);
+  gain.connect(delayAmount);
+  delayAmount.connect(delaySend);
 
-  oscillator.start(startTime);
-  oscillator.stop(startTime + 0.85);
+  sine.start(startTime);
+  triangle.start(startTime);
+  sine.stop(startTime + duration + 0.08);
+  triangle.stop(startTime + duration + 0.08);
 }
 
 function playKick(engine: AudioEngine, startTime: number): void {
   const { context, drumBus } = engine;
-
   const oscillator = context.createOscillator();
   const gain = context.createGain();
 
   oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(82, startTime);
-  oscillator.frequency.exponentialRampToValueAtTime(48, startTime + 0.16);
+  oscillator.frequency.setValueAtTime(76, startTime);
+  oscillator.frequency.exponentialRampToValueAtTime(44, startTime + 0.19);
 
-  gain.gain.setValueAtTime(0.035, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+  gain.gain.setValueAtTime(0.048, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.24);
 
   oscillator.connect(gain);
   gain.connect(drumBus);
 
   oscillator.start(startTime);
-  oscillator.stop(startTime + 0.24);
+  oscillator.stop(startTime + 0.26);
 }
 
-function playRim(engine: AudioEngine, startTime: number): void {
+function playMutedSnare(engine: AudioEngine, startTime: number): void {
   const { context, drumBus, noiseBuffer } = engine;
-
   const noise = context.createBufferSource();
   const bandpass = context.createBiquadFilter();
-  const highpass = context.createBiquadFilter();
-  const gain = context.createGain();
+  const lowpass = context.createBiquadFilter();
+  const noiseGain = context.createGain();
+  const body = context.createOscillator();
+  const bodyGain = context.createGain();
 
   noise.buffer = noiseBuffer;
 
   bandpass.type = "bandpass";
-  bandpass.frequency.setValueAtTime(1750, startTime);
-  bandpass.Q.setValueAtTime(1.7, startTime);
+  bandpass.frequency.setValueAtTime(1450, startTime);
+  bandpass.Q.setValueAtTime(0.85, startTime);
 
-  highpass.type = "highpass";
-  highpass.frequency.setValueAtTime(650, startTime);
+  lowpass.type = "lowpass";
+  lowpass.frequency.setValueAtTime(3600, startTime);
 
-  gain.gain.setValueAtTime(0.028, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.09);
+  noiseGain.gain.setValueAtTime(0.026, startTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.12);
+
+  body.type = "sine";
+  body.frequency.setValueAtTime(168, startTime);
+  bodyGain.gain.setValueAtTime(0.012, startTime);
+  bodyGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.105);
 
   noise.connect(bandpass);
-  bandpass.connect(highpass);
-  highpass.connect(gain);
-  gain.connect(drumBus);
+  bandpass.connect(lowpass);
+  lowpass.connect(noiseGain);
+  noiseGain.connect(drumBus);
+  body.connect(bodyGain);
+  bodyGain.connect(drumBus);
 
-  noise.start(startTime, Math.random() * 1.5, 0.1);
+  noise.start(startTime, Math.random() * 0.7, 0.14);
+  body.start(startTime);
+  body.stop(startTime + 0.12);
 }
 
 function playHat(
@@ -348,46 +401,27 @@ function playHat(
   accented = false,
 ): void {
   const { context, drumBus, noiseBuffer } = engine;
-
   const noise = context.createBufferSource();
   const highpass = context.createBiquadFilter();
+  const lowpass = context.createBiquadFilter();
   const gain = context.createGain();
 
   noise.buffer = noiseBuffer;
 
   highpass.type = "highpass";
-  highpass.frequency.setValueAtTime(6200, startTime);
+  highpass.frequency.setValueAtTime(6100, startTime);
+  lowpass.type = "lowpass";
+  lowpass.frequency.setValueAtTime(9800, startTime);
 
-  gain.gain.setValueAtTime(accented ? 0.009 : 0.005, startTime);
+  gain.gain.setValueAtTime(accented ? 0.009 : 0.006, startTime);
   gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.045);
 
   noise.connect(highpass);
-  highpass.connect(gain);
+  highpass.connect(lowpass);
+  lowpass.connect(gain);
   gain.connect(drumBus);
 
-  noise.start(startTime, Math.random() * 1.5, 0.05);
-}
-
-function playVinylCrackle(engine: AudioEngine, startTime: number): void {
-  const { context, drumBus, noiseBuffer } = engine;
-
-  const noise = context.createBufferSource();
-  const highpass = context.createBiquadFilter();
-  const gain = context.createGain();
-
-  noise.buffer = noiseBuffer;
-
-  highpass.type = "highpass";
-  highpass.frequency.setValueAtTime(3200, startTime);
-
-  gain.gain.setValueAtTime(0.0035, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.035);
-
-  noise.connect(highpass);
-  highpass.connect(gain);
-  gain.connect(drumBus);
-
-  noise.start(startTime, Math.random() * 1.5, 0.04);
+  noise.start(startTime, Math.random() * 0.7, 0.052);
 }
 
 function scheduleBar(
@@ -398,57 +432,70 @@ function scheduleBar(
   const progressionIndex = barIndex % CHORD_PROGRESSION.length;
   const chord = CHORD_PROGRESSION[progressionIndex];
 
-  playRhodesChord(engine, startTime, chord);
+  playPadChord(engine, startTime, chord);
 
-  playBassNote(engine, startTime + BEAT_LENGTH * 0.05, chord.bass);
   playBassNote(
     engine,
-    startTime + BEAT_LENGTH * 2.5,
-    chord.bass * 1.5,
-    BEAT_LENGTH,
+    startTime + BEAT_LENGTH * 0.08,
+    chord.bass,
+    BEAT_LENGTH * 1.42,
   );
-
-  playElectricKey(
+  playBassNote(
     engine,
-    startTime + BEAT_LENGTH * 0.2,
-    chord.notes[1] ?? chord.notes[0],
+    startTime + BEAT_LENGTH * 2.7,
+    chord.bassAccent,
+    BEAT_LENGTH * 0.9,
+    0.044,
   );
 
-  playElectricKey(
-    engine,
-    startTime + BEAT_LENGTH * 2.65,
-    chord.notes[2] ?? chord.notes[0],
-  );
+  const arpPattern = ARPEGGIO_PATTERNS[barIndex % ARPEGGIO_PATTERNS.length];
 
-  playKick(engine, startTime);
-  playKick(engine, startTime + BEAT_LENGTH * 2.75);
+  arpPattern.forEach((noteIndex, step) => {
+    if (noteIndex < 0) {
+      return;
+    }
 
-  playRim(engine, startTime + BEAT_LENGTH);
-  playRim(engine, startTime + BEAT_LENGTH * 3);
+    const swing = step % 2 === 1 ? BEAT_LENGTH * 0.028 : 0;
+    const midi = chord.arp[noteIndex] ?? chord.arp[0];
 
-  for (let step = 0; step < 8; step += 1) {
-    const swing = step % 2 === 1 ? BEAT_LENGTH * 0.055 : 0;
-
-    playHat(
+    playArpeggioNote(
       engine,
-      startTime + BEAT_LENGTH * 0.5 * step + swing,
-      step === 3 || step === 7,
+      startTime + step * BEAT_LENGTH * 0.5 + swing,
+      midi,
+      step === 0 || step === 4,
     );
-  }
-
-  const melody = MELODY_PATTERNS[progressionIndex];
-
-  melody.forEach((note) => {
-    playMelodyNote(engine, startTime + note.beat * BEAT_LENGTH, note.frequency);
   });
 
-  playVinylCrackle(engine, startTime + BEAT_LENGTH * 0.65);
-  playVinylCrackle(engine, startTime + BEAT_LENGTH * 2.2);
+  playKick(engine, startTime);
+  playKick(engine, startTime + BEAT_LENGTH * 2.5);
+  playMutedSnare(engine, startTime + BEAT_LENGTH);
+  playMutedSnare(engine, startTime + BEAT_LENGTH * 3);
+
+  const hatSteps = barIndex % 2 === 0 ? [1, 3, 6] : [1, 4, 7];
+
+  hatSteps.forEach((step, index) => {
+    const swing = step % 2 === 1 ? BEAT_LENGTH * 0.032 : 0;
+    playHat(
+      engine,
+      startTime + step * BEAT_LENGTH * 0.5 + swing,
+      index === hatSteps.length - 1,
+    );
+  });
+
+  const motif = LEAD_MOTIFS[progressionIndex] ?? [];
+
+  motif.forEach((note) => {
+    playLeadNote(
+      engine,
+      startTime + note.beat * BEAT_LENGTH,
+      note.midi,
+      note.duration,
+    );
+  });
 }
 
 function runScheduler(engine: AudioEngine): void {
-  const scheduleLimit =
-    engine.context.currentTime + SCHEDULE_AHEAD_SECONDS;
+  const scheduleLimit = engine.context.currentTime + SCHEDULE_AHEAD_SECONDS;
 
   while (engine.nextBarTime < scheduleLimit) {
     scheduleBar(engine, engine.nextBarTime, engine.barIndex);
@@ -461,19 +508,20 @@ function destroyEngine(engine: AudioEngine): void {
   window.clearInterval(engine.timer);
 
   const now = engine.context.currentTime;
+  const currentLevel = Math.max(engine.master.gain.value, 0.0001);
 
   engine.master.gain.cancelScheduledValues(now);
-  engine.master.gain.setValueAtTime(
-    Math.max(engine.master.gain.value, 0.0001),
-    now,
+  engine.master.gain.setValueAtTime(currentLevel, now);
+  engine.master.gain.exponentialRampToValueAtTime(
+    0.0001,
+    now + FADE_OUT_SECONDS,
   );
-  engine.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
 
   window.setTimeout(() => {
     if (engine.context.state !== "closed") {
       void engine.context.close();
     }
-  }, 420);
+  }, (FADE_OUT_SECONDS + 0.12) * 1000);
 }
 
 export function AmbientAudio() {
@@ -543,30 +591,54 @@ export function AmbientAudio() {
       const drumBus = context.createGain();
       const compressor = context.createDynamicsCompressor();
       const reverb = context.createConvolver();
-      const reverbGain = context.createGain();
+      const reverbSend = context.createGain();
+      const reverbReturn = context.createGain();
+      const delay = context.createDelay(1.5);
+      const delayFeedback = context.createGain();
+      const delayFilter = context.createBiquadFilter();
+      const delaySend = context.createGain();
+      const delayReturn = context.createGain();
 
       reverb.buffer = createReverbImpulse(context);
-      reverbGain.gain.setValueAtTime(0.17, context.currentTime);
-      musicBus.gain.setValueAtTime(0.88, context.currentTime);
-      drumBus.gain.setValueAtTime(0.72, context.currentTime);
+      reverbSend.gain.setValueAtTime(0.72, context.currentTime);
+      reverbReturn.gain.setValueAtTime(0.2, context.currentTime);
 
-      compressor.threshold.setValueAtTime(-18, context.currentTime);
-      compressor.knee.setValueAtTime(20, context.currentTime);
-      compressor.ratio.setValueAtTime(4, context.currentTime);
-      compressor.attack.setValueAtTime(0.008, context.currentTime);
-      compressor.release.setValueAtTime(0.24, context.currentTime);
+      delay.delayTime.setValueAtTime(BEAT_LENGTH * 0.75, context.currentTime);
+      delayFeedback.gain.setValueAtTime(0.2, context.currentTime);
+      delayFilter.type = "lowpass";
+      delayFilter.frequency.setValueAtTime(2600, context.currentTime);
+      delaySend.gain.setValueAtTime(0.72, context.currentTime);
+      delayReturn.gain.setValueAtTime(0.22, context.currentTime);
+
+      musicBus.gain.setValueAtTime(0.82, context.currentTime);
+      drumBus.gain.setValueAtTime(0.62, context.currentTime);
+
+      compressor.threshold.setValueAtTime(-20, context.currentTime);
+      compressor.knee.setValueAtTime(24, context.currentTime);
+      compressor.ratio.setValueAtTime(3.2, context.currentTime);
+      compressor.attack.setValueAtTime(0.012, context.currentTime);
+      compressor.release.setValueAtTime(0.32, context.currentTime);
 
       master.gain.setValueAtTime(0.0001, context.currentTime);
       master.gain.exponentialRampToValueAtTime(
         getMasterVolume(volume),
-        context.currentTime + 1.1,
+        context.currentTime + FADE_IN_SECONDS,
       );
 
       musicBus.connect(master);
-      musicBus.connect(reverb);
-      reverb.connect(reverbGain);
-      reverbGain.connect(master);
       drumBus.connect(master);
+
+      reverbSend.connect(reverb);
+      reverb.connect(reverbReturn);
+      reverbReturn.connect(master);
+
+      delaySend.connect(delay);
+      delay.connect(delayFilter);
+      delayFilter.connect(delayReturn);
+      delayReturn.connect(master);
+      delayFilter.connect(delayFeedback);
+      delayFeedback.connect(delay);
+
       master.connect(compressor);
       compressor.connect(context.destination);
 
@@ -575,9 +647,11 @@ export function AmbientAudio() {
         master,
         musicBus,
         drumBus,
+        reverbSend,
+        delaySend,
         noiseBuffer: createNoiseBuffer(context),
         timer: 0,
-        nextBarTime: context.currentTime + 0.08,
+        nextBarTime: context.currentTime + 0.1,
         barIndex: 0,
       };
 
