@@ -1,5 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AmbientAudio } from "./components/AmbientAudio";
+import { AmbientAudio, AmbientAudioPanel, AmbientAudioProvider } from "./components/AmbientAudio";
 import { BroadcastAtmosphere } from "./components/BroadcastAtmosphere";
 import { MatrixRain } from "./components/MatrixRain";
 import { ProjectVisual } from "./components/ProjectVisual";
@@ -210,7 +210,8 @@ function App() {
   const projectStyle = { "--project-accent": PROJECT_ACCENTS[activeIndex % PROJECT_ACCENTS.length] } as CSSProperties;
 
   return (
-    <>
+    <AmbientAudioProvider>
+      <>
       <a className="skip-link" href="#project-content">Skip to project content</a>
       {booting && <BootScreen onComplete={completeBoot} />}
       <div className={`site-shell ${booting ? "site-hidden" : ""}`} style={projectStyle}>
@@ -255,7 +256,6 @@ function App() {
           <section
             className="project-stage"
             id="project-content"
-            key={active.id}
             aria-labelledby="active-project-title"
             onTouchStart={(event) => {
               const touch = event.changedTouches[0];
@@ -273,7 +273,7 @@ function App() {
             }}
           >
             <div className="project-copy">
-              <div className="project-intro">
+              <div className="project-intro" key={`intro-${active.id}`}>
                 <div className="broadcast-card">
                   <span>NEXT MATCH</span>
                   <b>{active.title.toUpperCase()}</b>
@@ -291,20 +291,23 @@ function App() {
                 <div className="project-meta"><span><small>CLASS / ROLE</small>{active.role}</span><span><small>RELEASE STATUS</small>{active.status}</span></div>
               </div>
 
-              <aside className="detail-panel" aria-label={`${active.title} details`}>
-                <div className="detail-tabs" role="tablist" aria-label="Project information">
-                  <button role="tab" aria-selected={detailMode === "features"} className={detailMode === "features" ? "active" : ""} onClick={() => setDetailMode("features")}>TECHNIQUES</button>
-                  <button role="tab" aria-selected={detailMode === "stack"} className={detailMode === "stack" ? "active" : ""} onClick={() => setDetailMode("stack")}>LOADOUT</button>
-                </div>
-                {detailMode === "features" ? (
-                  <ol>{active.features.map((feature, index) => <li key={feature}><span>{String(index + 1).padStart(2, "0")}</span>{feature}</li>)}</ol>
-                ) : (
-                  <div className="stack-cloud">{active.stack.map((item) => <span key={item}>{item}</span>)}</div>
-                )}
-              </aside>
+              <div className="detail-column">
+                <AmbientAudioPanel />
+                <aside className="detail-panel" key={`detail-${active.id}`} aria-label={`${active.title} details`}>
+                  <div className="detail-tabs" role="tablist" aria-label="Project information">
+                    <button role="tab" aria-selected={detailMode === "features"} className={detailMode === "features" ? "active" : ""} onClick={() => setDetailMode("features")}>TECHNIQUES</button>
+                    <button role="tab" aria-selected={detailMode === "stack"} className={detailMode === "stack" ? "active" : ""} onClick={() => setDetailMode("stack")}>LOADOUT</button>
+                  </div>
+                  {detailMode === "features" ? (
+                    <ol>{active.features.map((feature, index) => <li key={feature}><span>{String(index + 1).padStart(2, "0")}</span>{feature}</li>)}</ol>
+                  ) : (
+                    <div className="stack-cloud">{active.stack.map((item) => <span key={item}>{item}</span>)}</div>
+                  )}
+                </aside>
+              </div>
             </div>
 
-            <div className="visual-column">
+            <div className="visual-column" key={`visual-${active.id}`}>
               <div className="visual-frame">
                 <div className="corner c1" /><div className="corner c2" /><div className="corner c3" /><div className="corner c4" />
                 <div className="visual-label">ARENA_FEED // {active.id.toUpperCase()}</div>
@@ -356,7 +359,8 @@ function App() {
           <span>{new Date().getFullYear()} // REACT + NODE + SQL</span>
         </footer>
       </div>
-    </>
+      </>
+    </AmbientAudioProvider>
   );
 }
 
