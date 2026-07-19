@@ -1,16 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 const VIDEO_ID = "_eIxgFwbFkY";
-const YOUTUBE_API_SRC = "https://www.youtube.com/iframe_api";
+const VIDEO_URL = `https://www.youtube.com/watch?v=${VIDEO_ID}`;
+const FALLBACK_TITLE = "FULL VINYL | Nujabes | Jazzy Hiphop Set | Elly";
 const VOLUME_KEY = "spirit-terminal-midnight-radio-volume";
 const DEFAULT_VOLUME = 0.34;
-const FALLBACK_TITLE = "Late-night coding mix";
+const TIME_UPDATE_MS = 500;
 
 interface YouTubeVideoData {
   title?: string;
@@ -19,45 +14,34 @@ interface YouTubeVideoData {
 interface YouTubePlayer {
   playVideo: () => void;
   pauseVideo: () => void;
-  destroy: () => void;
   setVolume: (volume: number) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
   getPlayerState: () => number;
   getVideoData: () => YouTubeVideoData;
-  getIframe: () => HTMLIFrameElement;
+  destroy: () => void;
 }
 
 interface YouTubePlayerEvent {
   target: YouTubePlayer;
-}
-
-interface YouTubePlayerErrorEvent {
-  data: number;
-  target: YouTubePlayer;
-}
-
-interface YouTubePlayerStateEvent {
-  data: number;
-  target: YouTubePlayer;
+  data?: number;
 }
 
 interface YouTubePlayerOptions {
-  width: number | string;
-  height: number | string;
+  width: string;
+  height: string;
   videoId: string;
-  host?: string;
-  playerVars: Record<string, number | string>;
+  playerVars: Record<string, string | number>;
   events: {
     onReady: (event: YouTubePlayerEvent) => void;
-    onStateChange: (event: YouTubePlayerStateEvent) => void;
-    onError: (event: YouTubePlayerErrorEvent) => void;
+    onStateChange: (event: YouTubePlayerEvent) => void;
+    onError: (event: YouTubePlayerEvent) => void;
   };
 }
 
 interface YouTubeNamespace {
   Player: new (
-    element: HTMLElement,
+    element: HTMLElement | string,
     options: YouTubePlayerOptions,
   ) => YouTubePlayer;
   PlayerState: {
@@ -78,21 +62,6 @@ declare global {
 
 let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
 
-function getSavedVolume(): number {
-  if (typeof window === "undefined") {
-    return DEFAULT_VOLUME;
-  }
-
-  const savedValue = window.localStorage.getItem(VOLUME_KEY);
-  const parsedValue = savedValue === null ? DEFAULT_VOLUME : Number(savedValue);
-
-  if (!Number.isFinite(parsedValue)) {
-    return DEFAULT_VOLUME;
-  }
-
-  return Math.min(1, Math.max(0, parsedValue));
-}
-
 function loadYouTubeApi(): Promise<YouTubeNamespace> {
   if (window.YT?.Player) {
     return Promise.resolve(window.YT);
@@ -103,68 +72,68 @@ function loadYouTubeApi(): Promise<YouTubeNamespace> {
   }
 
   youtubeApiPromise = new Promise<YouTubeNamespace>((resolve, reject) => {
-    const previousReadyCallback = window.onYouTubeIframeAPIReady;
-    let settled = false;
-
-    const resolveApi = () => {
-      if (settled) {
-        return;
-      }
-
-      if (!window.YT?.Player) {
-        reject(new Error("The YouTube player API did not initialize."));
-        settled = true;
-        return;
-      }
-
-      settled = true;
-      resolve(window.YT);
-    };
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    );
+    const previousReadyHandler = window.onYouTubeIframeAPIReady;
 
     window.onYouTubeIframeAPIReady = () => {
-      previousReadyCallback?.();
-      resolveApi();
+      previousReadyHandler?.();
+
+      if (window.YT?.Player) {
+        resolve(window.YT);
+        return;
+      }
+
+      reject(new Error("The YouTube player could not be initialized."));
     };
 
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      `script[src="${YOUTUBE_API_SRC}"]`,
-    );
-
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = YOUTUBE_API_SRC;
-      script.async = true;
-      script.onerror = () => {
-        if (!settled) {
-          settled = true;
-          youtubeApiPromise = null;
-          reject(new Error("The YouTube player could not be loaded."));
-        }
-      };
-      document.head.appendChild(script);
+    if (existingScript) {
+      existingScript.addEventListener(
+        "error",
+        () => reject(new Error("The YouTube player could not be loaded.")),
+        { once: true },
+      );
+      return;
     }
 
-    window.setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        youtubeApiPromise = null;
-        reject(new Error("The YouTube player took too long to load."));
-      }
-    }, 15_000);
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    script.addEventListener(
+      "error",
+      () => reject(new Error("The YouTube player could not be loaded.")),
+      { once: true },
+    );
+    document.head.appendChild(script);
   });
 
   return youtubeApiPromise;
 }
 
-function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return "0:00";
+function getSavedVolume(): number {
+  if (typeof window === "undefined") {
+    return DEFAULT_VOLUME;
   }
 
-  const wholeSeconds = Math.floor(seconds);
-  const hours = Math.floor(wholeSeconds / 3600);
-  const minutes = Math.floor((wholeSeconds % 3600) / 60);
-  const remainingSeconds = wholeSeconds % 60;
+  const storedVolume = Number(window.localStorage.getItem(VOLUME_KEY));
+
+  if (!Number.isFinite(storedVolume)) {
+    return DEFAULT_VOLUME;
+  }
+
+  return Math.min(1, Math.max(0, storedVolume));
+}
+
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00";
+  }
+
+  const roundedSeconds = Math.floor(seconds);
+  const hours = Math.floor(roundedSeconds / 3600);
+  const minutes = Math.floor((roundedSeconds % 3600) / 60);
+  const remainingSeconds = roundedSeconds % 60;
 
   if (hours > 0) {
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(
@@ -172,315 +141,200 @@ function formatTime(seconds: number): string {
     ).padStart(2, "0")}`;
   }
 
-  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(
+    remainingSeconds,
+  ).padStart(2, "0")}`;
 }
-
-function getPlayerErrorMessage(code: number): string {
-  switch (code) {
-    case 2:
-      return "The YouTube video address is invalid.";
-    case 5:
-      return "This browser could not play the YouTube video.";
-    case 100:
-      return "This YouTube video is unavailable.";
-    case 101:
-    case 150:
-      return "The video owner does not allow embedded playback.";
-    default:
-      return "The YouTube video could not be played.";
-  }
-}
-
-const playerPanelStyle: CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 9px)",
-  right: 0,
-  zIndex: 100,
-  width: "min(330px, calc(100vw - 24px))",
-  display: "grid",
-  gap: 8,
-  padding: 8,
-  border: "1px solid rgba(0,168,255,.34)",
-  background: "rgba(17,17,20,.98)",
-  boxShadow: "0 20px 54px rgba(0,0,0,.62)",
-  backdropFilter: "blur(14px)",
-};
-
-const playerFrameStyle: CSSProperties = {
-  width: "100%",
-  height: 200,
-  overflow: "hidden",
-  background: "#08080a",
-};
-
-const playerMetaStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
-  alignItems: "center",
-  gap: 10,
-};
-
-const playerTitleStyle: CSSProperties = {
-  minWidth: 0,
-  overflow: "hidden",
-  color: "#d6d6da",
-  font: "700 .54rem var(--font-mono)",
-  letterSpacing: ".06em",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
-const playerTimeStyle: CSSProperties = {
-  color: "var(--cyan)",
-  font: "700 .48rem var(--font-mono)",
-  letterSpacing: ".04em",
-  whiteSpace: "nowrap",
-};
-
-const progressTrackStyle: CSSProperties = {
-  height: 2,
-  overflow: "hidden",
-  background: "rgba(224,224,224,.12)",
-};
-
-const closeButtonStyle: CSSProperties = {
-  position: "absolute",
-  top: 12,
-  right: 12,
-  zIndex: 2,
-  width: 28,
-  height: 28,
-  display: "grid",
-  placeItems: "center",
-  border: "1px solid rgba(224,224,224,.18)",
-  background: "rgba(10,10,12,.78)",
-  color: "#d6d6da",
-  font: "700 .72rem var(--font-mono)",
-  cursor: "pointer",
-};
 
 export function AmbientAudio() {
+  const hostId = useId().replace(/:/g, "");
   const playerRef = useRef<YouTubePlayer | null>(null);
-  const playerHostRef = useRef<HTMLDivElement | null>(null);
-  const pendingPlayRef = useRef(false);
-  const resumeAfterVisibilityRef = useRef(false);
-  const volumeRef = useRef(getSavedVolume());
+  const playerPromiseRef = useRef<Promise<YouTubePlayer> | null>(null);
+  const timeTimerRef = useRef<number | null>(null);
+  const resumeAfterTabRef = useRef(false);
 
-  const [enabled, setEnabled] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [volume, setVolume] = useState(volumeRef.current);
-  const [audioError, setAudioError] = useState<string | null>(null);
   const [title, setTitle] = useState(FALLBACK_TITLE);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(getSavedVolume);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
-  const syncPlayerMetadata = useCallback(() => {
-    const player = playerRef.current;
+  const updatePlaybackDetails = useCallback((player: YouTubePlayer) => {
+    const nextTime = player.getCurrentTime();
+    const nextDuration = player.getDuration();
+    const nextTitle = player.getVideoData().title;
 
-    if (!player) {
-      return;
+    if (Number.isFinite(nextTime)) {
+      setCurrentTime(nextTime);
     }
 
-    try {
-      const nextTitle = player.getVideoData().title?.trim();
-      const nextCurrentTime = player.getCurrentTime();
-      const nextDuration = player.getDuration();
+    if (Number.isFinite(nextDuration) && nextDuration > 0) {
+      setDuration(nextDuration);
+    }
 
-      if (nextTitle) {
-        setTitle(nextTitle);
-      }
-
-      if (Number.isFinite(nextCurrentTime)) {
-        setCurrentTime(nextCurrentTime);
-      }
-
-      if (Number.isFinite(nextDuration) && nextDuration > 0) {
-        setDuration(nextDuration);
-      }
-    } catch {
-      // The iframe may be between states while YouTube swaps its internal player.
+    if (nextTitle?.trim()) {
+      setTitle(nextTitle.trim());
     }
   }, []);
+
+  const stopTimeUpdates = useCallback(() => {
+    if (timeTimerRef.current !== null) {
+      window.clearInterval(timeTimerRef.current);
+      timeTimerRef.current = null;
+    }
+  }, []);
+
+  const startTimeUpdates = useCallback(
+    (player: YouTubePlayer) => {
+      stopTimeUpdates();
+      updatePlaybackDetails(player);
+      timeTimerRef.current = window.setInterval(() => {
+        updatePlaybackDetails(player);
+      }, TIME_UPDATE_MS);
+    },
+    [stopTimeUpdates, updatePlaybackDetails],
+  );
+
+  const ensurePlayer = useCallback(async (): Promise<YouTubePlayer> => {
+    if (playerRef.current) {
+      return playerRef.current;
+    }
+
+    if (playerPromiseRef.current) {
+      return playerPromiseRef.current;
+    }
+
+    setAudioError(null);
+
+    playerPromiseRef.current = loadYouTubeApi().then(
+      (YT) =>
+        new Promise<YouTubePlayer>((resolve, reject) => {
+          const host = document.getElementById(hostId);
+
+          if (!host) {
+            reject(new Error("The video panel is not ready yet."));
+            return;
+          }
+
+          const player = new YT.Player(host, {
+            width: "100%",
+            height: "100%",
+            videoId: VIDEO_ID,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              disablekb: 0,
+              fs: 1,
+              playsinline: 1,
+              rel: 0,
+              origin: window.location.origin,
+            },
+            events: {
+              onReady: (event) => {
+                playerRef.current = event.target;
+                event.target.setVolume(Math.round(volume * 100));
+                updatePlaybackDetails(event.target);
+                setReady(true);
+                resolve(event.target);
+              },
+              onStateChange: (event) => {
+                const state = event.data;
+                const isPlaying = state === YT.PlayerState.PLAYING;
+
+                setPlaying(isPlaying);
+                updatePlaybackDetails(event.target);
+
+                if (isPlaying) {
+                  startTimeUpdates(event.target);
+                } else {
+                  stopTimeUpdates();
+                }
+              },
+              onError: () => {
+                const message =
+                  "This video cannot be played here. Open it on YouTube instead.";
+                setAudioError(message);
+                setPlaying(false);
+                stopTimeUpdates();
+                reject(new Error(message));
+              },
+            },
+          });
+        }),
+    );
+
+    try {
+      return await playerPromiseRef.current;
+    } catch (error) {
+      playerPromiseRef.current = null;
+      throw error;
+    }
+  }, [hostId, startTimeUpdates, stopTimeUpdates, updatePlaybackDetails, volume]);
+
+  const openPlayer = useCallback(() => {
+    setExpanded(true);
+    setAudioError(null);
+  }, []);
+
+  const collapsePlayer = useCallback(() => {
+    playerRef.current?.pauseVideo();
+    resumeAfterTabRef.current = false;
+    setPlaying(false);
+    setExpanded(false);
+    stopTimeUpdates();
+  }, [stopTimeUpdates]);
+
+  const togglePlayback = useCallback(async () => {
+    try {
+      if (playing) {
+        playerRef.current?.pauseVideo();
+        return;
+      }
+
+      if (!expanded) {
+        setExpanded(true);
+
+        // Wait for the pull-out panel to be visible before starting playback.
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      }
+
+      const player = await ensurePlayer();
+      player.setVolume(Math.round(volume * 100));
+      player.playVideo();
+    } catch (error) {
+      console.error("Unable to start Midnight Radio:", error);
+      setAudioError(
+        error instanceof Error ? error.message : "The video could not be started.",
+      );
+      setPlaying(false);
+    }
+  }, [ensurePlayer, expanded, playing, volume]);
 
   const updateVolume = useCallback((nextVolume: number) => {
     const safeVolume = Math.min(1, Math.max(0, nextVolume));
 
-    volumeRef.current = safeVolume;
     setVolume(safeVolume);
     window.localStorage.setItem(VOLUME_KEY, String(safeVolume));
-
-    try {
-      playerRef.current?.setVolume(Math.round(safeVolume * 100));
-    } catch {
-      // Ignore transient iframe communication errors while the player loads.
-    }
+    playerRef.current?.setVolume(Math.round(safeVolume * 100));
   }, []);
 
-  const closePlayer = useCallback(() => {
-    pendingPlayRef.current = false;
-    resumeAfterVisibilityRef.current = false;
-
-    const player = playerRef.current;
-
-    if (player) {
-      try {
-        player.pauseVideo();
-        player.destroy();
-      } catch {
-        // The iframe may already be gone during a fast navigation/unmount.
-      }
-    }
-
-    playerRef.current = null;
-    setEnabled(false);
-    setReady(false);
-    setPanelOpen(false);
-    setCurrentTime(0);
-    setDuration(0);
-  }, []);
-
-  const toggle = useCallback(() => {
-    setAudioError(null);
-
-    const player = playerRef.current;
-
-    if (enabled) {
-      pendingPlayRef.current = false;
-      resumeAfterVisibilityRef.current = false;
-
-      try {
-        player?.pauseVideo();
-      } catch {
-        setAudioError("The YouTube player could not be paused.");
-      }
-
-      setEnabled(false);
-      return;
-    }
-
-    setPanelOpen(true);
-    pendingPlayRef.current = true;
-
-    if (player && ready) {
-      try {
-        player.playVideo();
-        pendingPlayRef.current = false;
-      } catch {
-        setAudioError("The YouTube player could not be started.");
-      }
-    }
-  }, [enabled, ready]);
-
   useEffect(() => {
-    if (!panelOpen || playerRef.current || !playerHostRef.current) {
+    if (!expanded || playerRef.current || playerPromiseRef.current) {
       return;
     }
 
-    let cancelled = false;
-
-    void loadYouTubeApi()
-      .then((YouTube) => {
-        if (cancelled || !playerHostRef.current || playerRef.current) {
-          return;
-        }
-
-        const player = new YouTube.Player(playerHostRef.current, {
-          width: "100%",
-          height: "100%",
-          videoId: VIDEO_ID,
-          host: "https://www.youtube-nocookie.com",
-          playerVars: {
-            autoplay: 0,
-            controls: 1,
-            enablejsapi: 1,
-            loop: 1,
-            playlist: VIDEO_ID,
-            playsinline: 1,
-            rel: 0,
-            origin: window.location.origin,
-          },
-          events: {
-            onReady: (event) => {
-              if (cancelled) {
-                event.target.destroy();
-                return;
-              }
-
-              playerRef.current = event.target;
-              event.target.setVolume(Math.round(volumeRef.current * 100));
-
-              const iframe = event.target.getIframe();
-              iframe.title = "YouTube player for Midnight Radio";
-              iframe.style.width = "100%";
-              iframe.style.height = "100%";
-              iframe.style.display = "block";
-              iframe.style.border = "0";
-
-              setReady(true);
-              syncPlayerMetadata();
-
-              if (pendingPlayRef.current) {
-                pendingPlayRef.current = false;
-                event.target.playVideo();
-              }
-            },
-            onStateChange: (event) => {
-              const isPlaying =
-                event.data === YouTube.PlayerState.PLAYING;
-
-              setEnabled(isPlaying);
-
-              if (isPlaying) {
-                setAudioError(null);
-                setPanelOpen(true);
-              }
-
-              syncPlayerMetadata();
-            },
-            onError: (event) => {
-              pendingPlayRef.current = false;
-              setEnabled(false);
-              setAudioError(getPlayerErrorMessage(event.data));
-            },
-          },
-        });
-
-        playerRef.current = player;
-      })
-      .catch((error: unknown) => {
-        if (cancelled) {
-          return;
-        }
-
-        const message =
-          error instanceof Error
-            ? error.message
-            : "The YouTube player could not be loaded.";
-
-        pendingPlayRef.current = false;
-        setEnabled(false);
-        setReady(false);
-        setAudioError(message);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [panelOpen, syncPlayerMetadata]);
-
-  useEffect(() => {
-    if (!panelOpen) {
-      return;
-    }
-
-    syncPlayerMetadata();
-    const timer = window.setInterval(syncPlayerMetadata, 500);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [panelOpen, syncPlayerMetadata]);
+    void ensurePlayer().catch((error) => {
+      console.error("Unable to prepare Midnight Radio:", error);
+      setAudioError(
+        error instanceof Error ? error.message : "The video could not be loaded.",
+      );
+    });
+  }, [ensurePlayer, expanded]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -491,26 +345,14 @@ export function AmbientAudio() {
       }
 
       if (document.hidden) {
-        let wasPlaying = enabled;
-
-        try {
-          wasPlaying =
-            player.getPlayerState() === window.YT?.PlayerState.PLAYING;
-        } catch {
-          // Fall back to React state when the iframe is temporarily unavailable.
-        }
-
-        resumeAfterVisibilityRef.current = wasPlaying;
-
-        if (wasPlaying) {
-          player.pauseVideo();
-        }
-
+        resumeAfterTabRef.current = playing && expanded;
+        player.pauseVideo();
+        stopTimeUpdates();
         return;
       }
 
-      if (resumeAfterVisibilityRef.current) {
-        resumeAfterVisibilityRef.current = false;
+      if (resumeAfterTabRef.current && expanded) {
+        resumeAfterTabRef.current = false;
         player.playVideo();
       }
     };
@@ -520,144 +362,168 @@ export function AmbientAudio() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [enabled]);
+  }, [expanded, playing, stopTimeUpdates]);
 
   useEffect(() => {
     return () => {
-      const player = playerRef.current;
-
-      if (player) {
-        try {
-          player.destroy();
-        } catch {
-          // The YouTube iframe may already have been removed.
-        }
-      }
-
+      stopTimeUpdates();
+      playerRef.current?.destroy();
       playerRef.current = null;
+      playerPromiseRef.current = null;
     };
-  }, []);
+  }, [stopTimeUpdates]);
 
-  const progress =
-    duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const timeLabel = `${formatTime(currentTime)} / ${formatTime(duration)}`;
-  const statusText = audioError
-    ? "YouTube unavailable — click to retry"
-    : enabled
-      ? `${title} · ${timeLabel}`
-      : ready
-        ? `${title} · ready`
-        : panelOpen
-          ? "Loading YouTube player…"
-          : "Play YouTube late-night mix";
 
   return (
-    <div
-      className={`audio-control${enabled ? " playing" : ""}${
-        audioError ? " audio-error" : ""
-      }`}
-      style={{ position: "relative" }}
-    >
-      <button
-        type="button"
-        onClick={toggle}
-        aria-pressed={enabled}
-        aria-label={
-          enabled
-            ? `Pause YouTube audio: ${title}`
-            : `Play YouTube audio: ${title}`
-        }
+    <div style={{ position: "relative", minWidth: 0 }}>
+      <div
+        className={`audio-control${playing ? " playing" : ""}${
+          audioError ? " audio-error" : ""
+        }`}
       >
-        <span className="audio-icon" aria-hidden="true">
-          {enabled ? "Ⅱ" : "▶"}
-        </span>
-
-        <span
-          className="audio-label"
-          style={{ minWidth: 0, maxWidth: 158 }}
+        <button
+          type="button"
+          onClick={() => void togglePlayback()}
+          aria-pressed={playing}
+          aria-label={playing ? `Pause ${title}` : `Play ${title}`}
+          title={playing ? "Pause video" : "Open player and play video"}
         >
-          <b>MIDNIGHT RADIO</b>
-          <small
-            title={statusText}
-            style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-          >
-            {statusText}
-          </small>
-        </span>
+          <span className="audio-icon" aria-hidden="true">
+            {playing ? "Ⅱ" : "▶"}
+          </span>
 
-        <span className="audio-meter" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
-      </button>
+          <span className="audio-label" style={{ minWidth: 0 }}>
+            <b
+              title={title}
+              style={{
+                display: "block",
+                maxWidth: "230px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {title}
+            </b>
+            <small>
+              {audioError
+                ? "Player unavailable — open on YouTube"
+                : `${timeLabel} • ${playing ? "PLAYING" : ready ? "READY" : "YOUTUBE"}`}
+            </small>
+          </span>
 
-      <label title="YouTube music volume">
-        <span className="sr-only">YouTube music volume</span>
+          <span className="audio-meter" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        </button>
 
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={volume}
-          onChange={(event) => {
-            setAudioError(null);
-            updateVolume(Number(event.currentTarget.value));
+        <label title="Video volume">
+          <span className="sr-only">Video volume</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={volume}
+            onChange={(event) => {
+              setAudioError(null);
+              updateVolume(Number(event.currentTarget.value));
+            }}
+            aria-label="Video volume"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={expanded ? collapsePlayer : openPlayer}
+          aria-expanded={expanded}
+          aria-controls="midnight-radio-video-panel"
+          aria-label={expanded ? "Collapse video player" : "Expand video player"}
+          title={expanded ? "Collapse video" : "Show video"}
+          style={{
+            width: "34px",
+            minWidth: "34px",
+            height: "36px",
+            display: "grid",
+            placeItems: "center",
+            padding: 0,
+            borderLeft: "1px solid var(--line)",
+            color: expanded ? "var(--cyan)" : "var(--muted)",
+            font: "700 .6rem var(--font-mono)",
           }}
-          aria-label="YouTube music volume"
-        />
-      </label>
-
-      {panelOpen ? (
-        <section
-          style={playerPanelStyle}
-          aria-label="Midnight Radio YouTube player"
-          aria-live="polite"
         >
-          <button
-            type="button"
-            onClick={closePlayer}
-            style={closeButtonStyle}
-            aria-label="Close YouTube player"
-            title="Close player"
+          <span aria-hidden="true">{expanded ? "▲" : "▼"}</span>
+        </button>
+      </div>
+
+      <section
+          id="midnight-radio-video-panel"
+          aria-label="Midnight Radio YouTube video player"
+          aria-hidden={!expanded}
+          style={{
+            display: expanded ? "block" : "none",
+            position: "fixed",
+            zIndex: 120,
+            top: "calc(72px + var(--safe-top) + 8px)",
+            right: "clamp(8px, 2.4vw, 38px)",
+            width: "min(480px, calc(100vw - 16px))",
+            padding: "10px",
+            border: "1px solid var(--cyan-line)",
+            background: "rgba(13, 13, 16, .97)",
+            boxShadow: "0 18px 60px rgba(0, 0, 0, .58)",
+            backdropFilter: "blur(18px)",
+          }}
+        >
+          <div
+            style={{
+              minHeight: "200px",
+              aspectRatio: "16 / 9",
+              overflow: "hidden",
+              background: "#000",
+            }}
           >
-            ×
-          </button>
-
-          <div ref={playerHostRef} style={playerFrameStyle} />
-
-          <div style={playerMetaStyle}>
-            <span style={playerTitleStyle} title={title}>
-              {audioError ?? title}
-            </span>
-            <time style={playerTimeStyle}>{timeLabel}</time>
+            <div id={hostId} style={{ width: "100%", height: "100%" }} />
           </div>
 
           <div
-            style={progressTrackStyle}
-            role="progressbar"
-            aria-label="Video playback progress"
-            aria-valuemin={0}
-            aria-valuemax={Math.max(0, Math.floor(duration))}
-            aria-valuenow={Math.max(0, Math.floor(currentTime))}
-            aria-valuetext={timeLabel}
+            style={{
+              minWidth: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              padding: "9px 2px 0",
+              color: "var(--muted-dark)",
+              font: "600 .47rem var(--font-mono)",
+              letterSpacing: ".07em",
+            }}
           >
             <span
-              aria-hidden="true"
+              title={title}
               style={{
-                display: "block",
-                width: `${progress}%`,
-                height: "100%",
-                background: "var(--cyan)",
-                transition: "width .35s linear",
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
-            />
+            >
+              {title}
+            </span>
+            <a
+              href={VIDEO_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{ flex: "0 0 auto", color: "var(--cyan)" }}
+            >
+              OPEN ON YOUTUBE ↗
+            </a>
           </div>
         </section>
-      ) : null}
     </div>
   );
 }
