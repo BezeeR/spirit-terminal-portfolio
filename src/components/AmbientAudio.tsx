@@ -626,8 +626,6 @@ export function AmbientAudioPanel() {
   const {
     activeTrackIndex,
     audioError,
-    currentTime,
-    duration,
     expanded,
     hostId,
     title,
@@ -645,23 +643,8 @@ export function AmbientAudioPanel() {
       aria-label="Midnight Radio YouTube player and queue"
       hidden={!expanded}
     >
-      <div className="radio-dock-head">
-        <span><i /> MIDNIGHT_RADIO // QUEUE {String(activeTrackIndex + 1).padStart(2, "0")}/{String(TRACKS.length).padStart(2, "0")}</span>
-        <button type="button" onClick={collapsePlayer} aria-label="Collapse video player">×</button>
-      </div>
-
       <div className="radio-video-frame">
         <div id={hostId} className="radio-video-host" />
-      </div>
-
-      <div className="radio-now-playing">
-        <span>
-          <small>NOW PLAYING</small>
-          <b title={title}>{title}</b>
-        </span>
-        <a href={videoUrl} target="_blank" rel="noreferrer">
-          {formatTime(currentTime)} / {formatTime(duration)} ↗
-        </a>
       </div>
 
       <div className="radio-queue" role="list" aria-label="Midnight Radio queue">
@@ -679,6 +662,25 @@ export function AmbientAudioPanel() {
             <i>{index === activeTrackIndex ? "LIVE" : "PLAY"}</i>
           </button>
         ))}
+        <a
+          className="radio-open-youtube"
+          href={videoUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Open ${title} on YouTube`}
+          title="Open current video on YouTube"
+        >
+          ↗
+        </a>
+        <button
+          className="radio-collapse-button"
+          type="button"
+          onClick={collapsePlayer}
+          aria-label="Collapse video player"
+          title="Collapse video player"
+        >
+          ×
+        </button>
       </div>
 
       {audioError && <p className="radio-error" role="status">{audioError}</p>}
