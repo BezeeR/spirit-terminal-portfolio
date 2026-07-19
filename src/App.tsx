@@ -221,9 +221,9 @@ function App() {
         <div className="vhs-lines" aria-hidden="true" />
 
         <header className="topbar">
-          <a className="identity" href="#top" aria-label="Brandon Obeso portfolio home">
+          <a className="identity" href="#top" aria-label="BezeeR portfolio home">
             <span className="identity-mark">ST</span>
-            <span className="identity-copy"><b>BRANDON OBESO</b><small>SPIRIT TERMINAL // FULL-STACK</small></span>
+            <span className="identity-copy"><b>BEZEER</b><small>SPIRIT TERMINAL // FULL-STACK</small></span>
           </a>
           <div className="system-state"><i /> AFTER HOURS PROJECT BLOCK // SIGNAL CLEAR</div>
           <div className="topbar-actions">

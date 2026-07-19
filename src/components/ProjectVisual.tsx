@@ -59,7 +59,7 @@ function PortfolioVisual() {
     <div className="code-window">
       <div className="code-head"><span>spirit-terminal.tsx</span><i>● ON AIR</i></div>
       <pre><code>{`const builder = {
-  name: "Brandon Obeso",
+  name: "BezeeR",
   focus: [
     "product systems",
     "reliable workflows",
