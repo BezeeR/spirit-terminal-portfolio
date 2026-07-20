@@ -54,6 +54,27 @@ function MobileVisual() {
   );
 }
 
+function TCGBudsVisual() {
+  return (
+    <div className="device browser-device tcg-buds-device">
+      <div className="browser-bar"><span /><span /><span /><div>tcg-buds // authorized storefront preview</div></div>
+      <div className="tcg-buds-preview">
+        <img
+          src="./assets/tcg-buds-storefront.webp"
+          alt="TCG Buds content-first storefront homepage preview"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="tcg-buds-preview-status" aria-hidden="true">
+          <span>CONTENT FIRST</span>
+          <span>COMMUNITY POWERED</span>
+          <span>COMMERCE READY</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioVisual() {
   return (
     <div className="code-window">
@@ -82,5 +103,6 @@ export function ProjectVisual({ project }: { project: Project }) {
   if (project.visual === "desktop") return <DesktopVisual />;
   if (project.visual === "website") return <WebsiteVisual />;
   if (project.visual === "mobile") return <MobileVisual />;
+  if (project.visual === "tcg-buds") return <TCGBudsVisual />;
   return <PortfolioVisual />;
 }

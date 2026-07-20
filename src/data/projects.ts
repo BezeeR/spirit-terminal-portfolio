@@ -8,11 +8,11 @@ export type Project = {
   summary: string;
   role: string;
   status: string;
-  href: string;
+  href?: string;
   features: string[];
   stack: string[];
   telemetry: Array<{ label: string; value: string }>;
-  visual: "desktop" | "website" | "mobile" | "portfolio";
+  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds";
 };
 
 export const projects: Project[] = [
@@ -127,5 +127,32 @@ export const projects: Project[] = [
       { label: "STATE", value: "PROTOTYPE" }
     ],
     visual: "portfolio"
+  },
+  {
+    id: "tcg-buds-storefront",
+    number: "05",
+    eyebrow: "AUTHORIZED CLIENT CONCEPT",
+    title: "TCG Buds Storefront",
+    descriptor: "Content-first community storefront",
+    challenge: "CONNECTING CONTENT, COMMUNITY, AND COMMERCE",
+    summary:
+      "An authorized storefront concept for TCG Buds, a competitive One Piece TCG creator brand. The experience connects official videos, demo inventory, an accessible theater player, a competitive Deck Lab, persistent cart behavior, and customer-help foundations without pretending the prototype processes real orders.",
+    role: "Product strategy · UI engineering · Commerce architecture",
+    status: "v1.0 / deployment ready",
+    features: [
+      "Responsive creator-led storefront and demo product catalog",
+      "Official video hub with privacy-enhanced theater playback",
+      "Competitive Deck Lab with searchable prototype profiles",
+      "Persistent stock-aware cart and explicit Shopify boundary",
+      "Accessible customer-help, policy, and community routes",
+      "Release validation across routes, metadata, security, and small screens"
+    ],
+    stack: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Local Storage", "YouTube Embed", "Vercel", "Shopify-ready"],
+    telemetry: [
+      { label: "MODE", value: "AUTHORIZED DEMO" },
+      { label: "SURFACE", value: "STOREFRONT" },
+      { label: "STATE", value: "READY" }
+    ],
+    visual: "tcg-buds"
   }
 ];

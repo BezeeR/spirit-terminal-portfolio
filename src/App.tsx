@@ -11,7 +11,8 @@ const GITHUB_URL = "https://github.com/BezeeR";
 const DISCORD_URL = "https://discord.com/users/171078389166243840";
 const DISCORD_USERNAME = "bezeer";
 const DISCORD_USER_ID = "171078389166243840";
-const PROJECT_ACCENTS = ["#00A8FF", "#5E1174", "#FFCC00", "#FF66B2"];
+const PROJECT_ACCENTS = ["#00A8FF", "#5E1174", "#FFCC00", "#FF66B2", "#57D7DC"];
+const TCG_BUDS_PREVIEW_URL = import.meta.env.VITE_TCG_BUDS_URL?.trim() ?? "";
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
   const [line, setLine] = useState(0);
@@ -127,6 +128,8 @@ function App() {
   }, [contactOpen, projects.length]);
 
   const active = useMemo(() => projects[activeIndex] ?? fallbackProjects[0], [activeIndex, projects]);
+  const activeHref = active.id === "tcg-buds-storefront" ? TCG_BUDS_PREVIEW_URL : active.href;
+  const activeStatus = active.id === "tcg-buds-storefront" && activeHref ? "v1.0 / live portfolio demo" : active.status;
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -285,10 +288,14 @@ function App() {
                 <p className="descriptor">{active.descriptor}</p>
                 <p className="summary">{active.summary}</p>
                 <div className="project-actions">
-                  <a href={active.href} target="_blank" rel="noreferrer">ENTER PROJECT <span>↗</span></a>
+                  {activeHref ? (
+                    <a href={activeHref} target="_blank" rel="noreferrer">{active.id === "tcg-buds-storefront" ? "OPEN LIVE PREVIEW" : "ENTER PROJECT"} <span>↗</span></a>
+                  ) : (
+                    <span className="project-action-disabled" aria-disabled="true">PREVIEW DEPLOYING <span aria-hidden="true">◌</span></span>
+                  )}
                   <button type="button" onClick={() => setDetailMode(detailMode === "features" ? "stack" : "features")}>{detailMode === "features" ? "VIEW LOADOUT" : "VIEW TECHNIQUES"}</button>
                 </div>
-                <div className="project-meta"><span><small>CLASS / ROLE</small>{active.role}</span><span><small>RELEASE STATUS</small>{active.status}</span></div>
+                <div className="project-meta"><span><small>CLASS / ROLE</small>{active.role}</span><span><small>RELEASE STATUS</small>{activeStatus}</span></div>
               </div>
 
               <div className="detail-column">
