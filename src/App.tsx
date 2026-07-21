@@ -128,7 +128,7 @@ function App() {
   }, [contactOpen, projects.length]);
 
   const active = useMemo(() => projects[activeIndex] ?? fallbackProjects[0], [activeIndex, projects]);
-  const activeHref = active.id === "tcg-buds-storefront" ? TCG_BUDS_PREVIEW_URL : active.href;
+  const activeHref = active.id === "tcg-buds-storefront" ? TCG_BUDS_PREVIEW_URL || active.href : active.href;
   const activeStatus = active.id === "tcg-buds-storefront" && activeHref ? "v1.0 / live portfolio demo" : active.status;
 
   useEffect(() => {

@@ -34,7 +34,7 @@ The public marketing and release experience for CardSlate, including product sto
 A mobile event workflow for inventory access, convention checkout, offline sale recovery, card intake, and synchronized event controls.
 
 ### TCG Buds Storefront
-An authorized content-first storefront concept for a competitive One Piece TCG creator brand. The portfolio entry is visible in a deployment-ready state and activates its live-preview button when `VITE_TCG_BUDS_URL` is configured.
+An authorized content-first storefront concept for a competitive One Piece TCG creator brand. The portfolio entry links to the live authorized demo at `https://tcgbuds.bezeer.app/`. `VITE_TCG_BUDS_URL` can override that destination without changing source code.
 
 ## Highlights
 
@@ -94,7 +94,7 @@ npm run dev
 To activate the TCG Buds portfolio preview after its authorized deployment, set:
 
 ```env
-VITE_TCG_BUDS_URL=https://your-approved-tcg-buds-preview.example
+VITE_TCG_BUDS_URL=https://tcgbuds.bezeer.app/
 ```
 
 Then rebuild and deploy the portfolio:

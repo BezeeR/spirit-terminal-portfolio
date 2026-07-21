@@ -138,7 +138,8 @@ export const projects: Project[] = [
     summary:
       "An authorized storefront concept for TCG Buds, a competitive One Piece TCG creator brand. The experience connects official videos, demo inventory, an accessible theater player, a competitive Deck Lab, persistent cart behavior, and customer-help foundations without pretending the prototype processes real orders.",
     role: "Product strategy · UI engineering · Commerce architecture",
-    status: "v1.0 / deployment ready",
+    status: "v1.0 / live portfolio demo",
+    href: "https://tcgbuds.bezeer.app/",
     features: [
       "Responsive creator-led storefront and demo product catalog",
       "Official video hub with privacy-enhanced theater playback",
