@@ -34,7 +34,7 @@ The public marketing and release experience for CardSlate, including product sto
 A mobile event workflow for inventory access, convention checkout, offline sale recovery, card intake, and synchronized event controls.
 
 ### TCG Buds Storefront
-An authorized content-first storefront concept for a competitive One Piece TCG creator brand. The portfolio entry links to the live authorized demo at `https://tcgbuds.bezeer.app/`. `VITE_TCG_BUDS_URL` can override that destination without changing source code.
+An authorized bright-first storefront concept for a competitive One Piece TCG creator brand. It connects official main-channel, gameplay, and Shorts content with a responsive catalog, owner-curated Deck Lab, persistent demo cart, accessible support routes, automated browser coverage, and a Shopify Storefront API provider boundary. The portfolio entry links to the live authorized demo at `https://tcgbuds.bezeer.app/`. `VITE_TCG_BUDS_URL` can override that destination without changing source code.
 
 ## Highlights
 

@@ -271,8 +271,8 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
 
 .tcg-buds-device { overflow: hidden; border-color: rgba(87,215,220,.28); box-shadow: 0 28px 90px rgba(0,0,0,.62), 8px 8px 0 rgba(255,101,90,.045); }
 .tcg-buds-preview { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #090d10; }
-.tcg-buds-preview img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center top; filter: saturate(.9) contrast(1.03); }
-.tcg-buds-preview::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 55%, rgba(5,7,9,.88)); }
+.tcg-buds-preview img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center top; filter: saturate(.96) contrast(1.02); }
+.tcg-buds-preview::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 68%, rgba(5,7,9,.28)); }
 .tcg-buds-preview-status { position: absolute; z-index: 2; left: 12px; right: 12px; bottom: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
 .tcg-buds-preview-status span { padding: 6px 8px; border: 1px solid rgba(87,215,220,.3); border-radius: 999px; background: rgba(6,12,14,.82); color: #78e6e8; font: 750 .42rem var(--font-mono); letter-spacing: .08em; backdrop-filter: blur(8px); }
 

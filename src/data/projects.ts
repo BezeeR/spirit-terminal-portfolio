@@ -136,19 +136,19 @@ export const projects: Project[] = [
     descriptor: "Content-first community storefront",
     challenge: "CONNECTING CONTENT, COMMUNITY, AND COMMERCE",
     summary:
-      "An authorized storefront concept for TCG Buds, a competitive One Piece TCG creator brand. The experience connects official videos, demo inventory, an accessible theater player, a competitive Deck Lab, persistent cart behavior, and customer-help foundations without pretending the prototype processes real orders.",
+      "An authorized storefront concept for TCG Buds, a competitive One Piece TCG creator brand. The experience connects official main-channel, gameplay, and Shorts content with a responsive catalog, owner-curated Deck Lab, persistent cart behavior, accessible customer-help routes, and a production-ready Shopify provider boundary.",
     role: "Product strategy · UI engineering · Commerce architecture",
-    status: "v1.0 / live portfolio demo",
+    status: "v1.0 / live authorized demo",
     href: "https://tcgbuds.bezeer.app/",
     features: [
-      "Responsive creator-led storefront and demo product catalog",
-      "Official video hub with privacy-enhanced theater playback",
-      "Competitive Deck Lab with searchable prototype profiles",
-      "Persistent stock-aware cart and explicit Shopify boundary",
+      "Bright-first responsive storefront with persistent theme choice",
+      "Official main-channel, gameplay, and Shorts video experiences",
+      "Owner-curated Deck Lab with searchable 50-card profiles",
+      "Persistent stock-aware cart and Shopify Storefront provider",
       "Accessible customer-help, policy, and community routes",
-      "Release validation across routes, metadata, security, and small screens"
+      "Automated route, accessibility, and viewport regression coverage"
     ],
-    stack: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Local Storage", "YouTube Embed", "Vercel", "Shopify-ready"],
+    stack: ["Next.js 16", "React 19", "TypeScript", "Tailwind CSS", "Shopify Storefront API", "YouTube Embed", "Playwright", "Vercel"],
     telemetry: [
       { label: "MODE", value: "AUTHORIZED DEMO" },
       { label: "SURFACE", value: "STOREFRONT" },
