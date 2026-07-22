@@ -433,7 +433,7 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
 }
 .stratboard-preview {
   position: relative;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 1902 / 906;
   overflow: hidden;
   background: #070a0f;
 }
@@ -443,14 +443,14 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
   display: block;
   object-fit: cover;
   object-position: center top;
-  filter: saturate(.96) contrast(1.03) brightness(.91);
+  filter: saturate(.98) contrast(1.01) brightness(.98);
 }
 .stratboard-preview::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent 68%, rgba(4,6,10,.38));
+  background: linear-gradient(180deg, transparent 74%, rgba(4,6,10,.28));
 }
 .stratboard-preview-status {
   position: absolute;

@@ -15,3 +15,9 @@
 2. Copy its production URL.
 3. Set `VITE_STRATBOARD_URL` in the portfolio environment.
 4. Rebuild and redeploy the portfolio.
+
+## Preview refresh
+
+- Replaced the earlier StratBoard mockup with the current release interface screenshot
+- Updated the preview aspect ratio so the full application shell and strategy inspector remain visible
+- Reduced the dark image treatment so the light-theme UI stays readable inside the portfolio frame

@@ -1,0 +1,7 @@
+Summary:
+Update the StratBoard portfolio preview
+
+Description:
+- Replace the outdated StratBoard mockup with a screenshot of the current release interface
+- Preserve the full application layout instead of cropping the dashboard and strategy inspector
+- Adjust the preview aspect ratio, image treatment, and overlay so the live project is represented accurately
