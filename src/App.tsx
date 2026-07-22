@@ -13,10 +13,7 @@ const DISCORD_USERNAME = "bezeer";
 const DISCORD_USER_ID = "171078389166243840";
 const PROJECT_ACCENTS = ["#00A8FF", "#5E1174", "#FFCC00", "#FF66B2", "#57D7DC", "#8B5CF6"];
 const TCG_BUDS_PREVIEW_URL = import.meta.env.VITE_TCG_BUDS_URL?.trim() ?? "";
-const configuredStratBoardUrl = import.meta.env.VITE_STRATBOARD_URL?.trim() ?? "";
-const STRATBOARD_PREVIEW_URL = configuredStratBoardUrl.includes("github.com")
-  ? "https://stratboard-six.vercel.app/"
-  : configuredStratBoardUrl || "https://stratboard-six.vercel.app/";
+const STRATBOARD_LIVE_URL = "https://stratboard-six.vercel.app/";
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
   const [line, setLine] = useState(0);
@@ -89,7 +86,16 @@ function App() {
     const timeout = window.setTimeout(() => controller.abort(), 1800);
     fetch("/api/projects", { signal: controller.signal })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("API unavailable")))
-      .then((data: Project[]) => data.length && setProjects(data))
+      .then((data: Project[]) => {
+        if (!data.length) return;
+        setProjects(
+          data.map((project) =>
+            project.id === "stratboard"
+              ? { ...project, href: STRATBOARD_LIVE_URL }
+              : project
+          )
+        );
+      })
       .catch(() => undefined)
       .finally(() => window.clearTimeout(timeout));
     return () => {
@@ -133,15 +139,15 @@ function App() {
 
   const active = useMemo(() => projects[activeIndex] ?? fallbackProjects[0], [activeIndex, projects]);
   const activeHref =
-    active.id === "tcg-buds-storefront"
-      ? TCG_BUDS_PREVIEW_URL || active.href
-      : active.id === "stratboard"
-        ? STRATBOARD_PREVIEW_URL || active.href
+    active.id === "stratboard"
+      ? STRATBOARD_LIVE_URL
+      : active.id === "tcg-buds-storefront"
+        ? TCG_BUDS_PREVIEW_URL || active.href
         : active.href;
   const activeStatus =
     active.id === "tcg-buds-storefront" && activeHref
       ? "v1.0 / live portfolio demo"
-      : active.id === "stratboard" && activeHref
+      : active.id === "stratboard"
         ? "v1.0 / live portfolio tool"
         : active.status;
 
