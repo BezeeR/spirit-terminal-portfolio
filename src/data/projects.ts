@@ -12,7 +12,7 @@ export type Project = {
   features: string[];
   stack: string[];
   telemetry: Array<{ label: string; value: string }>;
-  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds";
+  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds" | "stratboard";
 };
 
 export const projects: Project[] = [
@@ -155,5 +155,33 @@ export const projects: Project[] = [
       { label: "STATE", value: "READY" }
     ],
     visual: "tcg-buds"
+  },
+  {
+    id: "stratboard",
+    number: "06",
+    eyebrow: "TACTICAL PLANNING TOOL",
+    title: "StratBoard",
+    descriptor: "Interactive CS2 strategy planner",
+    challenge: "TURNING STATIC MAP SCREENSHOTS INTO A REAL PLAYBOOK",
+    summary:
+      "A local-first Counter-Strike 2 planning app for building executes, defaults, retakes, and defensive setups directly on real tactical radar maps. StratBoard combines precise canvas interaction, step-by-step presentation, and a browser-saved playbook without requiring an account.",
+    role: "Product design · Front-end engineering · Interaction systems",
+    status: "v1.0 / portfolio release",
+    href: "https://github.com/BezeeR/stratboard",
+    features: [
+      "Real CS2 tactical radars with responsive zoom, pan, and Nuke floor support",
+      "Players, roles, utility, movement routes, and editable tactical callouts",
+      "Step-based execute building with read-only presentation mode",
+      "Local strategy library with autosave, favorites, filters, and recovery",
+      "Versioned JSON backup export and safe non-destructive import",
+      "Touch-ready responsive layouts with light, dark, and system themes"
+    ],
+    stack: ["Next.js 16", "React 19", "TypeScript", "Tailwind CSS 4", "React Konva", "Zustand", "Zod", "Vercel"],
+    telemetry: [
+      { label: "MODE", value: "LOCAL-FIRST" },
+      { label: "SURFACE", value: "WEB APP" },
+      { label: "STATE", value: "RELEASE" }
+    ],
+    visual: "stratboard"
   }
 ];

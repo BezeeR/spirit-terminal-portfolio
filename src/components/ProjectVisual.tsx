@@ -75,6 +75,27 @@ function TCGBudsVisual() {
   );
 }
 
+function StratBoardVisual() {
+  return (
+    <div className="device browser-device stratboard-device">
+      <div className="browser-bar"><span /><span /><span /><div>stratboard // tactical planning workspace</div></div>
+      <div className="stratboard-preview">
+        <img
+          src="./assets/stratboard.webp"
+          alt="StratBoard Counter-Strike 2 tactical strategy planner preview"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="stratboard-preview-status" aria-hidden="true">
+          <span>LOCAL-FIRST</span>
+          <span>STEP PLAYBACK</span>
+          <span>CS2 RADARS</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioVisual() {
   return (
     <div className="code-window">
@@ -104,5 +125,6 @@ export function ProjectVisual({ project }: { project: Project }) {
   if (project.visual === "website") return <WebsiteVisual />;
   if (project.visual === "mobile") return <MobileVisual />;
   if (project.visual === "tcg-buds") return <TCGBudsVisual />;
+  if (project.visual === "stratboard") return <StratBoardVisual />;
   return <PortfolioVisual />;
 }

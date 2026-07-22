@@ -1,0 +1,9 @@
+Summary:
+Add StratBoard to the project arena
+
+Description:
+- Add StratBoard as a dedicated project tab with case-study content and release metadata
+- Use a real StratBoard tactical-planner preview inside a custom responsive project visual
+- Add a distinct StratBoard accent treatment that fits the Spirit Terminal interface
+- Support a live StratBoard deployment through VITE_STRATBOARD_URL with a GitHub fallback
+- Update portfolio documentation and production environment guidance

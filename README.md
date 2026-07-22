@@ -18,7 +18,7 @@
 
 ## Overview
 
-Spirit Terminal is a responsive portfolio built around **CardSlate** and future product systems. Instead of a long template-style page, visitors move through a project arena using project tabs, keyboard controls, swipe navigation, and animated broadcast transitions.
+Spirit Terminal is a responsive portfolio built around **CardSlate**, **TCG Buds**, **StratBoard**, and future product systems. Instead of a long template-style page, visitors move through a project arena using project tabs, keyboard controls, swipe navigation, and animated broadcast transitions.
 
 The visual direction combines brutalist tournament architecture, VHS texture, rain, fog, cyan energy, and a procedural lo-fi radio. All artwork, effects, interface elements, and audio are original; the project does not redistribute anime screenshots, television-network branding, character art, voice clips, or copyrighted music.
 
@@ -35,6 +35,9 @@ A mobile event workflow for inventory access, convention checkout, offline sale 
 
 ### TCG Buds Storefront
 An authorized bright-first storefront concept for a competitive One Piece TCG creator brand. It connects official main-channel, gameplay, and Shorts content with a responsive catalog, owner-curated Deck Lab, persistent demo cart, accessible support routes, automated browser coverage, and a Shopify Storefront API provider boundary. The portfolio entry links to the live authorized demo at `https://tcgbuds.bezeer.app/`. `VITE_TCG_BUDS_URL` can override that destination without changing source code.
+
+### StratBoard
+A local-first Counter-Strike 2 tactical planner built with Next.js, React Konva, Zustand, and Zod. It supports real radar maps, multi-step execute presentation, browser-saved playbooks, favorites, search, and versioned JSON backup import/export. The portfolio uses a real StratBoard product preview and falls back to its GitHub repository until `VITE_STRATBOARD_URL` is configured.
 
 ## Highlights
 
@@ -91,13 +94,14 @@ npm run dev
 
 ## Production
 
-To activate the TCG Buds portfolio preview after its authorized deployment, set:
+To point project cards at their live deployments, set the relevant Vite variables:
 
 ```env
 VITE_TCG_BUDS_URL=https://tcgbuds.bezeer.app/
+VITE_STRATBOARD_URL=https://your-stratboard-deployment.example/
 ```
 
-Then rebuild and deploy the portfolio:
+When `VITE_STRATBOARD_URL` is empty, the StratBoard project falls back to its GitHub repository. Then rebuild and deploy the portfolio:
 
 ```bash
 npm run build
@@ -136,6 +140,7 @@ server/
 - [Design system](DESIGN-SYSTEM.md)
 - [Responsive and reliability QA](RESPONSIVE-QA.md)
 - [v0.4 changelog](CHANGELOG-v0.4.md)
+- [StratBoard integration changelog](CHANGELOG-stratboard.md)
 - [GitHub Desktop setup](GITHUB-DESKTOP-SETUP.md)
 
 ## Hosting
