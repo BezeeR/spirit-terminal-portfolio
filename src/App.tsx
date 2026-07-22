@@ -138,12 +138,11 @@ function App() {
   }, [contactOpen, projects.length]);
 
   const active = useMemo(() => projects[activeIndex] ?? fallbackProjects[0], [activeIndex, projects]);
+  const isStratBoard = active.id === "stratboard";
   const activeHref =
-    active.id === "stratboard"
-      ? STRATBOARD_LIVE_URL
-      : active.id === "tcg-buds-storefront"
-        ? TCG_BUDS_PREVIEW_URL || active.href
-        : active.href;
+    active.id === "tcg-buds-storefront"
+      ? TCG_BUDS_PREVIEW_URL || active.href
+      : active.href;
   const activeStatus =
     active.id === "tcg-buds-storefront" && activeHref
       ? "v1.0 / live portfolio demo"
@@ -308,8 +307,17 @@ function App() {
                 <p className="descriptor">{active.descriptor}</p>
                 <p className="summary">{active.summary}</p>
                 <div className="project-actions">
-                  {activeHref ? (
-                    <a href={activeHref} target="_blank" rel="noreferrer">{active.id === "tcg-buds-storefront" ? "OPEN LIVE PREVIEW" : "ENTER PROJECT"} <span>↗</span></a>
+                  {isStratBoard ? (
+                    <a
+                      href="https://stratboard-six.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-project-destination="stratboard-live-app"
+                    >
+                      ENTER PROJECT <span>↗</span>
+                    </a>
+                  ) : activeHref ? (
+                    <a href={activeHref} target="_blank" rel="noopener noreferrer">{active.id === "tcg-buds-storefront" ? "OPEN LIVE PREVIEW" : "ENTER PROJECT"} <span>↗</span></a>
                   ) : (
                     <span className="project-action-disabled" aria-disabled="true">PREVIEW DEPLOYING <span aria-hidden="true">◌</span></span>
                   )}

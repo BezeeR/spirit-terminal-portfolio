@@ -48,7 +48,7 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.get("/api/projects", (_request, response) => {
-  response.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+  response.setHeader("Cache-Control", "no-store, max-age=0");
   response.json(projects);
 });
 
@@ -112,8 +112,19 @@ app.use((error: unknown, _request: express.Request, response: express.Response, 
 });
 
 const staticDir = resolve(currentDir, "../dist");
-app.use(express.static(staticDir, { maxAge: "1h", etag: true }));
+app.use(
+  express.static(staticDir, {
+    maxAge: "1h",
+    etag: true,
+    setHeaders(response, filePath) {
+      if (filePath.endsWith("index.html")) {
+        response.setHeader("Cache-Control", "no-store, max-age=0");
+      }
+    }
+  })
+);
 app.use((_request, response) => {
+  response.setHeader("Cache-Control", "no-store, max-age=0");
   response.sendFile(resolve(staticDir, "index.html"));
 });
 
