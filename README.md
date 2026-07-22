@@ -98,10 +98,10 @@ To point project cards at their live deployments, set the relevant Vite variable
 
 ```env
 VITE_TCG_BUDS_URL=https://tcgbuds.bezeer.app/
-VITE_STRATBOARD_URL=https://your-stratboard-deployment.example/
+VITE_STRATBOARD_URL=https://stratboard-six.vercel.app/
 ```
 
-When `VITE_STRATBOARD_URL` is empty, the StratBoard project falls back to its GitHub repository. Then rebuild and deploy the portfolio:
+The live StratBoard deployment is also built into the project data as a safe fallback. `VITE_STRATBOARD_URL` remains an optional deployment override. Then rebuild and deploy the portfolio:
 
 ```bash
 npm run build

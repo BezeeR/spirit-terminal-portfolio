@@ -1,0 +1,9 @@
+Summary:
+Fix StratBoard portfolio live link
+
+Description:
+- Point the StratBoard Enter Project action at the live Vercel application
+- Replace the GitHub repository fallback with the production project URL
+- Ignore stale GitHub values in the optional StratBoard environment override
+- Keep the release label aligned with the live portfolio tool
+- Update deployment documentation and the example environment file

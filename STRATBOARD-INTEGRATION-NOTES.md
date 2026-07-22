@@ -10,17 +10,17 @@ npm run build
 npm run dev
 ```
 
-The source falls back to the StratBoard GitHub repository while no live deployment URL is configured.
+The source falls back to the live StratBoard deployment even when no environment override is configured.
 
 ## Connect the live deployment
 
 After deploying StratBoard, add the production URL to the portfolio environment:
 
 ```env
-VITE_STRATBOARD_URL=https://your-stratboard-deployment.example/
+VITE_STRATBOARD_URL=https://stratboard-six.vercel.app/
 ```
 
-Rebuild and redeploy the portfolio. The project CTA and release label will then switch to the live StratBoard experience automatically.
+Rebuild and redeploy the portfolio. The project CTA always opens the live StratBoard experience; the environment variable can override that URL later if the deployment changes.
 
 ## Included presentation assets
 

@@ -167,7 +167,7 @@ export const projects: Project[] = [
       "A local-first Counter-Strike 2 planning app for building executes, defaults, retakes, and defensive setups directly on real tactical radar maps. StratBoard combines precise canvas interaction, step-by-step presentation, and a browser-saved playbook without requiring an account.",
     role: "Product design · Front-end engineering · Interaction systems",
     status: "v1.0 / portfolio release",
-    href: "https://github.com/BezeeR/stratboard",
+    href: "https://stratboard-six.vercel.app/",
     features: [
       "Real CS2 tactical radars with responsive zoom, pan, and Nuke floor support",
       "Players, roles, utility, movement routes, and editable tactical callouts",
