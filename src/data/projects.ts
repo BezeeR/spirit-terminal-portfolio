@@ -12,7 +12,7 @@ export type Project = {
   features: string[];
   stack: string[];
   telemetry: Array<{ label: string; value: string }>;
-  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds" | "stratboard";
+  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds" | "stratboard" | "pack-night";
 };
 
 export const projects: Project[] = [
@@ -120,7 +120,7 @@ export const projects: Project[] = [
       "API-backed project content",
       "SQLite-ready contact message storage"
     ],
-    stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "SQLite", "Web Audio API", "CSS Motion"],
+    stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "SQLite", "YouTube IFrame API", "CSS Motion"],
     telemetry: [
       { label: "MODE", value: "SHOWCASE" },
       { label: "SURFACE", value: "FULL-STACK" },
@@ -183,5 +183,33 @@ export const projects: Project[] = [
       { label: "STATE", value: "RELEASE" }
     ],
     visual: "stratboard"
+  },
+  {
+    id: "tcg-buds-pack-night",
+    number: "07",
+    eyebrow: "DISCORD ACTIVITY",
+    title: "TCG Buds Pack Night",
+    descriptor: "Social One Piece TCG pack simulator",
+    challenge: "TURNING A SOLO PACK OPENER INTO A SHARED GAME NIGHT",
+    summary:
+      "A full-stack Discord Activity and browser experience for opening virtual One Piece TCG packs, building a persistent collection, earning simulator Berries, trading through a player marketplace, and competing in synchronized Pack Battles with friends.",
+    role: "Product design · Full-stack development · Game systems · Discord integration",
+    status: "v0.1 / live activity build",
+    href: "https://grand-lineserver-production.up.railway.app/",
+    features: [
+      "OP-01 through OP-16 pack opening with real card data and artwork",
+      "Persistent Discord-linked collection, progression, Berries, and daily challenges",
+      "CPU battles and synchronized multiplayer Discord Pack Battles",
+      "Player marketplace for listing and buying cards with simulator currency",
+      "Searchable collection, rarity filters, card inspection, and DON!! Gallery",
+      "Production health checks, sanitized diagnostics, reconnect recovery, and responsive UI"
+    ],
+    stack: ["React 19", "TypeScript", "Vite 6", "Discord Embedded App SDK", "Node.js", "Express 5", "Supabase", "PostgreSQL", "OPTCG API", "Railway"],
+    telemetry: [
+      { label: "MODE", value: "MULTIPLAYER" },
+      { label: "SURFACE", value: "DISCORD + WEB" },
+      { label: "STATE", value: "LIVE" }
+    ],
+    visual: "pack-night"
   }
 ];

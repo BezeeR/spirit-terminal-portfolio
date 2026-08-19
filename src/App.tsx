@@ -11,8 +11,9 @@ const GITHUB_URL = "https://github.com/BezeeR";
 const DISCORD_URL = "https://discord.com/users/171078389166243840";
 const DISCORD_USERNAME = "bezeer";
 const DISCORD_USER_ID = "171078389166243840";
-const PROJECT_ACCENTS = ["#00A8FF", "#5E1174", "#FFCC00", "#FF66B2", "#57D7DC", "#8B5CF6"];
+const PROJECT_ACCENTS = ["#00A8FF", "#5E1174", "#FFCC00", "#FF66B2", "#57D7DC", "#8B5CF6", "#19B6B2"];
 const TCG_BUDS_PREVIEW_URL = import.meta.env.VITE_TCG_BUDS_URL?.trim() ?? "";
+const PACK_NIGHT_LIVE_URL = import.meta.env.VITE_PACK_NIGHT_URL?.trim() ?? "";
 const STRATBOARD_LIVE_URL = "https://stratboard-six.vercel.app/";
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
@@ -92,6 +93,8 @@ function App() {
           data.map((project) =>
             project.id === "stratboard"
               ? { ...project, href: STRATBOARD_LIVE_URL }
+              : project.id === "tcg-buds-pack-night" && PACK_NIGHT_LIVE_URL
+                ? { ...project, href: PACK_NIGHT_LIVE_URL }
               : project
           )
         );
@@ -142,12 +145,16 @@ function App() {
   const activeHref =
     active.id === "tcg-buds-storefront"
       ? TCG_BUDS_PREVIEW_URL || active.href
+      : active.id === "tcg-buds-pack-night"
+        ? PACK_NIGHT_LIVE_URL || active.href
       : active.href;
   const activeStatus =
     active.id === "tcg-buds-storefront" && activeHref
       ? "v1.0 / live portfolio demo"
       : active.id === "stratboard"
         ? "v1.0 / live portfolio tool"
+        : active.id === "tcg-buds-pack-night"
+          ? "v0.1 / live Discord + web build"
         : active.status;
 
   useEffect(() => {

@@ -18,9 +18,9 @@
 
 ## Overview
 
-Spirit Terminal is a responsive portfolio built around **CardSlate**, **TCG Buds**, **StratBoard**, and future product systems. Instead of a long template-style page, visitors move through a project arena using project tabs, keyboard controls, swipe navigation, and animated broadcast transitions.
+Spirit Terminal is a responsive portfolio built around **CardSlate**, **TCG Buds**, **StratBoard**, **TCG Buds Pack Night**, and future product systems. Instead of a long template-style page, visitors move through a project arena using project tabs, keyboard controls, swipe navigation, and animated broadcast transitions.
 
-The visual direction combines brutalist tournament architecture, VHS texture, rain, fog, cyan energy, and a procedural lo-fi radio. All artwork, effects, interface elements, and audio are original; the project does not redistribute anime screenshots, television-network branding, character art, voice clips, or copyrighted music.
+The visual direction combines brutalist tournament architecture, VHS texture, rain, fog, cyan energy, and a docked late-night music player.
 
 ## Featured work
 
@@ -39,12 +39,15 @@ An authorized bright-first storefront concept for a competitive One Piece TCG cr
 ### StratBoard
 A local-first Counter-Strike 2 tactical planner built with Next.js, React Konva, Zustand, and Zod. It supports real radar maps, multi-step execute presentation, browser-saved playbooks, favorites, search, and versioned JSON backup import/export. The portfolio uses a real StratBoard product preview and falls back to its GitHub repository until `VITE_STRATBOARD_URL` is configured.
 
+### TCG Buds Pack Night
+A full-stack Discord Activity and browser build for opening One Piece TCG packs, maintaining a cloud-synced collection, earning simulator Berries, completing daily challenges, trading in a player marketplace, and running CPU or synchronized Discord Pack Battles. It uses React, TypeScript, Vite, the Discord Embedded App SDK, Express, Supabase/PostgreSQL, OPTCG API data, and Railway. Visitors can open the live browser build directly from the portfolio.
+
 ## Highlights
 
 - Project-switching workspace designed to reduce excessive scrolling
 - Responsive layouts for phones, tablets, laptops, desktops, and ultrawide displays
 - Keyboard, touch, swipe, and pointer navigation
-- Original procedural lo-fi audio using the Web Audio API
+- Docked Nujabes YouTube set with playback and volume controls
 - Adaptive Canvas effects that reduce work on mobile and pause in hidden tabs
 - Reduced-motion, increased-contrast, focus, and skip-navigation support
 - Express API with request validation, rate limiting, and SQLite persistence
@@ -59,7 +62,7 @@ A local-first Counter-Strike 2 tactical planner built with Next.js, React Konva,
 | Styling | Custom responsive CSS |
 | Server | Node.js, Express |
 | Data | Node built-in SQLite |
-| Effects | Canvas, Web Audio API |
+| Media and effects | Canvas, YouTube IFrame API |
 | Quality | TypeScript build, GitHub Actions CI |
 
 ## Architecture
@@ -69,7 +72,7 @@ Browser
 ├── React project arena
 ├── Responsive visual system
 ├── Canvas broadcast effects
-├── Procedural Web Audio soundtrack
+├── Docked YouTube music player
 └── Contact console
         │
         ▼
@@ -99,6 +102,7 @@ To point project cards at their live deployments, set the relevant Vite variable
 ```env
 VITE_TCG_BUDS_URL=https://tcgbuds.bezeer.app/
 VITE_STRATBOARD_URL=https://stratboard-six.vercel.app/
+VITE_PACK_NIGHT_URL=https://grand-lineserver-production.up.railway.app/
 ```
 
 The live StratBoard deployment is also built into the project data as a safe fallback. `VITE_STRATBOARD_URL` remains an optional deployment override. Then rebuild and deploy the portfolio:

@@ -12,10 +12,6 @@ import {
 
 const TRACKS = [
   {
-    id: "w8xEmi539EY",
-    fallbackTitle: "MIDNIGHT RADIO // SESSION 01",
-  },
-  {
     id: "_eIxgFwbFkY",
     fallbackTitle: "FULL VINYL | Nujabes | Jazzy Hiphop Set | Elly",
   },

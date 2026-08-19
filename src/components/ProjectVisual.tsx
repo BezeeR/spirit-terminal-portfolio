@@ -96,6 +96,24 @@ function StratBoardVisual() {
   );
 }
 
+function PackNightVisual() {
+  return (
+    <div className="device browser-device pack-night-device">
+      <div className="browser-bar"><span /><span /><span /><div>tcg buds // pack night live</div></div>
+      <div className="pack-night-preview">
+        <div className="pack-night-head"><b>TCG BUDS</b><span>PACK NIGHT</span><i>● LIVE</i></div>
+        <div className="pack-night-balance"><small>YOUR BERRIES</small><strong>฿ 12,450</strong><span>DISCORD SYNCED</span></div>
+        <div className="pack-night-packs" aria-hidden="true">
+          <article><small>OP-01</small><b>ROMANCE<br />DAWN</b><i>OPEN PACK</i></article>
+          <article><small>OP-05</small><b>AWAKENING<br />OF THE NEW ERA</b><i>OPEN PACK</i></article>
+          <article><small>OP-09</small><b>EMPERORS<br />IN THE NEW WORLD</b><i>OPEN PACK</i></article>
+        </div>
+        <div className="pack-night-actions"><span>MY COLLECTION</span><span>PACK BATTLE</span><span>MARKETPLACE</span></div>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioVisual() {
   return (
     <div className="code-window">
@@ -126,5 +144,6 @@ export function ProjectVisual({ project }: { project: Project }) {
   if (project.visual === "mobile") return <MobileVisual />;
   if (project.visual === "tcg-buds") return <TCGBudsVisual />;
   if (project.visual === "stratboard") return <StratBoardVisual />;
+  if (project.visual === "pack-night") return <PackNightVisual />;
   return <PortfolioVisual />;
 }

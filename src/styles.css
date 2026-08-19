@@ -308,6 +308,19 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
 .broadcast-bug { position:fixed;right:20px;bottom:46px;z-index:20;display:grid;gap:2px;padding:7px 9px;border-right:2px solid rgba(0,168,255,.42);background:rgba(17,17,20,.58);backdrop-filter:blur(7px);text-align:right;pointer-events:none }.broadcast-bug span{color:#e2e2e4;font:750 .49rem var(--font-mono);letter-spacing:.13em}.broadcast-bug b{color:#6f6f76;font:650 .37rem var(--font-mono);letter-spacing:.1em}
 .statusbar { min-width:0;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 clamp(18px,2.2vw,32px) var(--safe-bottom);border-top:1px solid var(--line);background:rgba(26,26,26,.82);color:#606067;font:650 .49rem var(--font-mono);letter-spacing:.07em;backdrop-filter:blur(14px) }.statusbar a:hover{color:var(--cyan)}.footer-socials{display:flex;gap:9px;align-items:center}.footer-socials b{color:#3f3f44}
 
+/* TCG Buds Pack Night portfolio arena */
+.pack-night-device { overflow:hidden;border-color:rgba(25,182,178,.34);box-shadow:0 28px 90px rgba(0,0,0,.64),8px 8px 0 rgba(25,182,178,.055) }
+.pack-night-preview { min-height:360px;padding:18px;background:radial-gradient(circle at 76% 12%,rgba(255,207,68,.18),transparent 28%),linear-gradient(145deg,#eafafa 0%,#f8fbf6 48%,#e6f5f4 100%);color:#173b44 }
+.pack-night-head { display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid rgba(18,103,116,.13);font-family:var(--font-mono) }
+.pack-night-head b { color:#087d88;font-size:.78rem;letter-spacing:.05em }.pack-night-head span{font-size:.58rem;font-weight:850;letter-spacing:.12em}.pack-night-head i{margin-left:auto;color:#0b9b67;font-size:.48rem;font-style:normal}
+.pack-night-balance { display:grid;grid-template-columns:1fr auto;align-items:end;margin:20px 0 14px;padding:14px;border:1px solid rgba(18,103,116,.1);border-radius:14px;background:rgba(255,255,255,.82);box-shadow:0 12px 30px rgba(23,59,68,.07) }
+.pack-night-balance small { grid-column:1/-1;color:#6f858c;font:800 .46rem var(--font-mono);letter-spacing:.12em }.pack-night-balance strong{margin-top:4px;color:#9a7315;font-size:1.35rem}.pack-night-balance span{color:#0b8d75;font:850 .43rem var(--font-mono);letter-spacing:.08em}
+.pack-night-packs { display:grid;grid-template-columns:repeat(3,1fr);gap:10px }
+.pack-night-packs article { min-height:154px;display:flex;flex-direction:column;padding:13px;border:1px solid rgba(16,117,128,.13);border-radius:12px;background:linear-gradient(155deg,#1a6a75,#173b44);box-shadow:0 10px 20px rgba(20,68,76,.14);color:#fff }
+.pack-night-packs article:nth-child(2){background:linear-gradient(155deg,#a96a2b,#55355e)}.pack-night-packs article:nth-child(3){background:linear-gradient(155deg,#215883,#212845)}
+.pack-night-packs small { color:#9fe7e4;font:800 .48rem var(--font-mono);letter-spacing:.1em }.pack-night-packs b{margin:auto 0;font-size:clamp(.58rem,1vw,.82rem);line-height:1.08}.pack-night-packs i{padding-top:8px;border-top:1px solid rgba(255,255,255,.18);color:#fff2ad;font:800 .42rem var(--font-mono);font-style:normal;letter-spacing:.08em}
+.pack-night-actions { display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px }.pack-night-actions span{padding:8px 4px;border-radius:8px;color:#087d88;background:#dff7f6;font:850 .42rem var(--font-mono);text-align:center;letter-spacing:.05em}
+
 /* Responsive layouts */
 @media (max-width: 1450px) {
   .project-stage { grid-template-columns: minmax(330px,.85fr) minmax(430px,1.15fr); grid-template-areas: "intro visual" "detail visual"; align-content: center; }
@@ -387,6 +400,7 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
   .website-hero { min-height:290px }.site-copy{width:64%;padding-top:34px}.website-hero>.desktop-device{width:68%;right:-20%}
   .mobile-scene { min-height:405px }.phone-device{width:200px;min-height:380px;padding-inline:12px}.sync-orbit{display:none}
   .code-window pre { padding:18px 14px;font-size:.54rem }
+  .pack-night-preview{min-height:310px;padding:12px}.pack-night-packs article{min-height:132px;padding:9px}.pack-night-balance{margin:12px 0 10px;padding:10px}.pack-night-actions span{font-size:.36rem}
   .contact-overlay { padding:10px }.contact-console{max-height:calc(100svh - 20px)}.contact-scroll{max-height:calc(100svh - 64px);padding:20px 15px}.direct-channels{grid-template-columns:1fr}.contact-console form{grid-template-columns:1fr}.contact-console label:nth-of-type(3){grid-column:auto}.contact-submit{grid-column:auto;align-items:stretch;flex-direction:column}.contact-result{text-align:center}
   .statusbar { padding-inline:12px;font-size:.42rem }.footer-socials{gap:6px}
   .night-sky::before { opacity:.25 }.arena-beam{display:none}.spirit-particles i:nth-child(n+9){display:none}.window-rain{opacity:.06}
