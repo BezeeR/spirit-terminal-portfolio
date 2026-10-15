@@ -9,11 +9,21 @@ export type Project = {
   role: string;
   status: string;
   href?: string;
+  linkLabel?: string;
   features: string[];
   stack: string[];
   telemetry: Array<{ label: string; value: string }>;
-  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds" | "stratboard" | "pack-night";
+  visual: "desktop" | "website" | "mobile" | "portfolio" | "tcg-buds" | "stratboard" | "pack-night" | "afterhours";
 };
+
+function projectUrl(value: string | undefined, fallback: string): string {
+  try {
+    const url = new URL(value?.trim() || fallback);
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export const projects: Project[] = [
   {
@@ -108,23 +118,23 @@ export const projects: Project[] = [
     descriptor: "A portfolio that behaves like software",
     challenge: "THE GENERIC ENDLESS-SCROLL PORTFOLIO",
     summary:
-      "This portfolio avoids the usual endless landing page. Projects load into a focused workspace with keyboard navigation, late-night broadcast effects, readable case studies, and a Node/SQLite foundation for future contact and content tools.",
+      "A focused portfolio workspace for full-stack products and multiplayer games. Visitors can switch projects instantly, share a direct project link, explore real previews, and connect through Discord or GitHub inside a late-night broadcast interface.",
     role: "Creative direction · Interaction design · Engineering",
-    status: "v0.4 / after hours",
+    status: "v0.5 / live portfolio",
     href: "https://github.com/BezeeR",
     features: [
       "Single-workspace project navigation",
-      "After-hours boot sequence and restrained text scrambling",
+      "Immediate project content without a blocking boot sequence",
       "Keyboard, touch, and swipe project switching",
       "Responsive layouts from 320px phones to ultrawide displays",
-      "API-backed project content",
-      "SQLite-ready contact message storage"
+      "Shareable project links and bundled case-study content",
+      "On-demand music and direct Discord / GitHub contact"
     ],
-    stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "SQLite", "YouTube IFrame API", "CSS Motion"],
+    stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "YouTube IFrame API", "Playwright", "Railway"],
     telemetry: [
       { label: "MODE", value: "SHOWCASE" },
       { label: "SURFACE", value: "FULL-STACK" },
-      { label: "STATE", value: "PROTOTYPE" }
+      { label: "STATE", value: "LIVE" }
     ],
     visual: "portfolio"
   },
@@ -139,7 +149,8 @@ export const projects: Project[] = [
       "An authorized storefront concept for TCG Buds, a competitive One Piece TCG creator brand. The experience connects official main-channel, gameplay, and Shorts content with a responsive catalog, owner-curated Deck Lab, persistent cart behavior, accessible customer-help routes, and a production-ready Shopify provider boundary.",
     role: "Product strategy · UI engineering · Commerce architecture",
     status: "v1.0 / live authorized demo",
-    href: "https://tcgbuds.bezeer.app/",
+    href: projectUrl(import.meta.env.VITE_TCG_BUDS_URL, "https://tcgbuds.bezeer.app/"),
+    linkLabel: "OPEN LIVE PREVIEW",
     features: [
       "Bright-first responsive storefront with persistent theme choice",
       "Official main-channel, gameplay, and Shorts video experiences",
@@ -167,7 +178,7 @@ export const projects: Project[] = [
       "A local-first Counter-Strike 2 planning app for building executes, defaults, retakes, and defensive setups directly on real tactical radar maps. StratBoard combines precise canvas interaction, step-by-step presentation, and a browser-saved playbook without requiring an account.",
     role: "Product design · Front-end engineering · Interaction systems",
     status: "v1.0 / portfolio release",
-    href: "https://stratboard-six.vercel.app/",
+    href: projectUrl(import.meta.env.VITE_STRATBOARD_URL, "https://stratboard-six.vercel.app/"),
     features: [
       "Real CS2 tactical radars with responsive zoom, pan, and Nuke floor support",
       "Players, roles, utility, movement routes, and editable tactical callouts",
@@ -187,29 +198,57 @@ export const projects: Project[] = [
   {
     id: "tcg-buds-pack-night",
     number: "07",
-    eyebrow: "DISCORD ACTIVITY",
-    title: "TCG Buds Pack Night",
-    descriptor: "Social One Piece TCG pack simulator",
-    challenge: "TURNING A SOLO PACK OPENER INTO A SHARED GAME NIGHT",
+    eyebrow: "OPTCG / DISCORD ACTIVITY",
+    title: "TCG Buds Sim",
+    descriptor: "One Piece TCG tabletop + Pack Night",
+    challenge: "FROM OPENING PACKS TO PLAYING THE TABLE",
     summary:
-      "A full-stack Discord Activity and browser experience for opening virtual One Piece TCG packs, building a persistent collection, earning simulator Berries, trading through a player marketplace, and competing in synchronized Pack Battles with friends.",
+      "A One Piece TCG fan simulator that brings deck practice and social Pack Night into one Discord Activity. Play cards directly on a virtual tabletop, train against Practice CPU, build decks, open virtual packs, and keep a cloud-synced collection with friends. All Berries and cards are for gameplay only.",
     role: "Product design · Full-stack development · Game systems · Discord integration",
-    status: "v0.1 / live activity build",
-    href: "https://grand-lineserver-production.up.railway.app/",
+    status: "Live test build / simulator in development",
+    href: projectUrl(import.meta.env.VITE_PACK_NIGHT_URL, "https://grand-lineserver-production.up.railway.app/"),
+    linkLabel: "OPEN TCG BUDS SIM",
     features: [
-      "OP-01 through OP-16 pack opening with real card data and artwork",
-      "Persistent Discord-linked collection, progression, Berries, and daily challenges",
-      "CPU battles and synchronized multiplayer Discord Pack Battles",
-      "Player marketplace for listing and buying cards with simulator currency",
-      "Searchable collection, rarity filters, card inspection, and DON!! Gallery",
-      "Production health checks, sanitized diagnostics, reconnect recovery, and responsive UI"
+      "Interactive OPTCG tabletop with direct card play, DON!!, attacks, and battle responses",
+      "Practice CPU with Casual, Competitive, and Elite profiles and five curated Sim Decks",
+      "Deck building and server-validated rules, payments, and private card choices",
+      "Virtual pack opening, searchable collection, card inspection, and DON!! Gallery",
+      "Discord-linked progression, daily challenges, and a gameplay-currency marketplace",
+      "Synchronized Discord Pack Battles, reconnect recovery, and browser regression coverage"
     ],
-    stack: ["React 19", "TypeScript", "Vite 6", "Discord Embedded App SDK", "Node.js", "Express 5", "Supabase", "PostgreSQL", "OPTCG API", "Railway"],
+    stack: ["React 19", "TypeScript", "Vite", "Discord Embedded App SDK", "Node.js", "Express 5", "Supabase", "PostgreSQL", "OPTCG API", "Playwright", "Railway"],
     telemetry: [
-      { label: "MODE", value: "MULTIPLAYER" },
+      { label: "MODE", value: "CPU + SOCIAL" },
       { label: "SURFACE", value: "DISCORD + WEB" },
-      { label: "STATE", value: "LIVE" }
+      { label: "STATE", value: "LIVE TEST" }
     ],
     visual: "pack-night"
+  },
+  {
+    id: "afterhours",
+    number: "08",
+    eyebrow: "ORIGINAL GAME / DISCORD ACTIVITY",
+    title: "Afterhours",
+    descriptor: "Fictional markets. Shared stakes. One more day.",
+    challenge: "SURVIVING A MARKET THAT MOVES WITH THE ROOM",
+    summary:
+      "An original multiplayer market-survival game designed for Discord. Start with 1,000 fictional CR, trade against shared liquidity, and keep your run alive until bankruptcy. Persistent XP and cosmetics make every return to the night shift count. CR has no real-money value or cash-out.",
+    role: "Game design · Full-stack engineering · Economy systems · Discord integration",
+    status: "Private alpha / Discord playtest pending",
+    features: [
+      "Server-authoritative shared markets with fees, price impact, and protected fills",
+      "Market, limit, stop, and linked take-profit / stop-loss orders with reserved funds",
+      "Portfolio allocation, concentration checks, and estimated exit value",
+      "Private watchlists, trade history, and persistent account progression",
+      "Fictional coin companies, market sizes, and shared-network events in development",
+      "Cosmetic progression, accessible controls, and responsive desktop / mobile layouts"
+    ],
+    stack: ["React 19", "TypeScript", "Vite", "Node.js", "Express 5", "WebSocket", "Supabase", "PostgreSQL", "Discord Embedded App SDK", "Playwright"],
+    telemetry: [
+      { label: "MODE", value: "MARKET SURVIVAL" },
+      { label: "SURFACE", value: "DISCORD ACTIVITY" },
+      { label: "STATE", value: "PRIVATE ALPHA" }
+    ],
+    visual: "afterhours"
   }
 ];

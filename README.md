@@ -1,103 +1,68 @@
-<p align="center">
-  <img src="docs/social-preview.png" alt="Spirit Terminal: After Hours — full-stack portfolio" width="100%" />
-</p>
+<p align="center"><img src="docs/social-preview.png" alt="Spirit Terminal — BezeeR’s full-stack portfolio" width="100%" /></p>
 
-<h1 align="center">Spirit Terminal: After Hours</h1>
+# Spirit Terminal
 
-<p align="center">
-  A full-stack portfolio that presents product case studies inside an original late-night supernatural tournament broadcast interface.
-</p>
-
-<p align="center">
-  <a href="https://github.com/BezeeR/spirit-terminal-portfolio/actions/workflows/ci.yml"><img src="https://github.com/BezeeR/spirit-terminal-portfolio/actions/workflows/ci.yml/badge.svg" alt="Build status" /></a>
-  <img src="https://img.shields.io/badge/React-19-00A8FF?logo=react&logoColor=white" alt="React 19" />
-  <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.8" />
-  <img src="https://img.shields.io/badge/Node.js-22.5%2B-333339?logo=node.js&logoColor=white" alt="Node.js 22.5+" />
-  <img src="https://img.shields.io/badge/SQLite-built--in-FFCC00?logo=sqlite&logoColor=111111" alt="SQLite" />
-</p>
-
-## Overview
-
-Spirit Terminal is a responsive portfolio built around **CardSlate**, **TCG Buds**, **StratBoard**, **TCG Buds Pack Night**, and future product systems. Instead of a long template-style page, visitors move through a project arena using project tabs, keyboard controls, swipe navigation, and animated broadcast transitions.
-
-The visual direction combines brutalist tournament architecture, VHS texture, rain, fog, cyan energy, and a docked late-night music player.
+BezeeR’s product portfolio at **[www.bezeer.app](https://www.bezeer.app/)**. A late-night broadcast workspace for full-stack products, practical tools, and original games.
 
 ## Featured work
 
-### CardSlate Desktop
-A local-first trading-card inventory, pricing, and convention-sales application built with Electron, React, TypeScript, SQLite, and Supabase.
+- **CardSlate Desktop** — local-first TCG inventory, pricing, and convention sales; private beta.
+- **CardSlate Website** — product story, release gateway, and support.
+- **Event Companion** — phone-ready convention inventory and checkout.
+- **TCG Buds Storefront** — authorized creator-brand storefront demo, content, catalog, and Deck Lab.
+- **StratBoard** — a local-first CS2 tactical planner with real radar maps and saved playbooks.
+- **[TCG Buds Sim](https://www.bezeer.app/#tcg-buds-pack-night)** — the OPTCG tabletop and Pack Night experience. Includes direct card play, DON!!, battle responses, Practice CPU profiles, five curated Sim Decks, virtual packs, collection, progression, and social Pack Battles. The link opens the live browser test build; Discord-only identity and room features require the Activity. This is a fan simulator in development, with gameplay-only Berries and cards.
+- **[Afterhours](https://www.bezeer.app/#afterhours)** — an original multiplayer market-survival Discord Activity. Fictional CR, shared liquidity, protected trading, reserved orders, portfolio risk feedback, private watchlists, XP, and cosmetics. **Private alpha; Discord playtesting is pending.** The screenshot previews an alpha build, including coin-world features still in development. CR has no real-money value or cash-out.
 
-### CardSlate Website
-The public marketing and release experience for CardSlate, including product storytelling, private-beta downloads, support information, and responsive presentation.
-
-### Event Companion
-A mobile event workflow for inventory access, convention checkout, offline sale recovery, card intake, and synchronized event controls.
-
-### TCG Buds Storefront
-An authorized bright-first storefront concept for a competitive One Piece TCG creator brand. It connects official main-channel, gameplay, and Shorts content with a responsive catalog, owner-curated Deck Lab, persistent demo cart, accessible support routes, automated browser coverage, and a Shopify Storefront API provider boundary. The portfolio entry links to the live authorized demo at `https://tcgbuds.bezeer.app/`. `VITE_TCG_BUDS_URL` can override that destination without changing source code.
-
-### StratBoard
-A local-first Counter-Strike 2 tactical planner built with Next.js, React Konva, Zustand, and Zod. It supports real radar maps, multi-step execute presentation, browser-saved playbooks, favorites, search, and versioned JSON backup import/export. The portfolio uses a real StratBoard product preview and falls back to its GitHub repository until `VITE_STRATBOARD_URL` is configured.
-
-### TCG Buds Pack Night
-A full-stack Discord Activity and browser build for opening One Piece TCG packs, maintaining a cloud-synced collection, earning simulator Berries, completing daily challenges, trading in a player marketplace, and running CPU or synchronized Discord Pack Battles. It uses React, TypeScript, Vite, the Discord Embedded App SDK, Express, Supabase/PostgreSQL, OPTCG API data, and Railway. Visitors can open the live browser build directly from the portfolio.
-
-## Highlights
-
-- Project-switching workspace designed to reduce excessive scrolling
-- Responsive layouts for phones, tablets, laptops, desktops, and ultrawide displays
-- Keyboard, touch, swipe, and pointer navigation
-- Docked Nujabes YouTube set with playback and volume controls
-- Adaptive Canvas effects that reduce work on mobile and pause in hidden tabs
-- Reduced-motion, increased-contrast, focus, and skip-navigation support
-- Express API with request validation, rate limiting, and SQLite persistence
-- Bundled project-data fallback when the API is unavailable
-- GitHub Actions build verification on pushes and pull requests
-
-## Technology
-
-| Layer | Technology |
-| --- | --- |
-| Interface | React 19, TypeScript, Vite |
-| Styling | Custom responsive CSS |
-| Server | Node.js, Express |
-| Data | Node built-in SQLite |
-| Media and effects | Canvas, YouTube IFrame API |
-| Quality | TypeScript build, GitHub Actions CI |
-
-## Architecture
-
-```text
-Browser
-├── React project arena
-├── Responsive visual system
-├── Canvas broadcast effects
-├── Docked YouTube music player
-└── Contact console
-        │
-        ▼
-Express API
-├── Project data endpoint
-├── Contact validation
-├── Rate limiting
-└── SQLite message storage
-```
+The Systems Portfolio tab explains this site itself. Every project has a direct hash link and a keyboard-accessible navigation entry.
 
 ## Run locally
 
-Node.js **22.5 or newer** is required.
+Use Node **22.12+ or 24** and npm.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-- Client: `http://localhost:5173`
-- API: `http://localhost:5174`
+The client runs on `http://localhost:5173`; Vite proxies `/api` to the server on port 5174. No database, account, or secrets are required.
 
-## Production
+## Verify and build
 
-To point project cards at their live deployments, set the relevant Vite variables:
+```bash
+npm run build
+npm test
+npx playwright install chromium
+npm run test:browser
+npm audit
+```
+
+On Linux CI, use `npx playwright install --with-deps chromium`. To reuse an installed Chromium, set `PORTFOLIO_BROWSER_EXECUTABLE_PATH` to its executable path. Browser checks cover all eight project entries at 14 viewports from 320px to 1920px, plus keyboard navigation, deep links, contact-dialog focus, blocked browser storage, and the opt-in radio boundary. Screenshots and failure details are written to the ignored `test-results/` directory. YouTube is mocked in the playback regression; external playback still depends on the visitor’s browser and YouTube availability.
+
+`npm run build` type-checks the app and server, creates Vite assets, and generates Brotli/gzip copies of JavaScript and CSS. Start the production server with:
+
+```bash
+npm start
+```
+
+`PORT` overrides the default 5174. `/api/health` reports the portfolio version.
+
+## Architecture
+
+- **React 19 + TypeScript + Vite** for the project workspace.
+- **Bundled project content**, avoiding a duplicate content API request.
+- **Express** serves the production build and health check with security headers.
+- **Brotli/gzip** delivery and immutable caching for fingerprinted assets; HTML and unversioned previews revalidate.
+- **CSS atmosphere**, static on compact screens and reduced-motion aware. Hidden tabs pause background motion and audio.
+- **YouTube IFrame API**, loaded only after the visitor opens or plays Midnight Radio. The Nujabes set remains the only track.
+- **Direct Discord/GitHub contact** through a native modal dialog. No names, email addresses, or messages are collected or stored by this site.
+- **GitHub Actions** checks build, HTTP behavior, dependencies, accessibility, and browser regressions.
+
+The portfolio has no Supabase connection. Supabase appears in case-study stacks for the products that actually use it. The old SQLite contact inbox and `/api/projects` fetch were removed in v0.5 because they added no delivery workflow or durable storage.
+
+## Project destinations
+
+Optional **build-time** overrides accept HTTPS URLs without embedded credentials:
 
 ```env
 VITE_TCG_BUDS_URL=https://tcgbuds.bezeer.app/
@@ -105,62 +70,16 @@ VITE_STRATBOARD_URL=https://stratboard-six.vercel.app/
 VITE_PACK_NIGHT_URL=https://grand-lineserver-production.up.railway.app/
 ```
 
-The live StratBoard deployment is also built into the project data as a safe fallback. `VITE_STRATBOARD_URL` remains an optional deployment override. Then rebuild and deploy the portfolio:
+Invalid overrides fall back to the built-in verified project URLs. Afterhours intentionally has no public launch link while it remains a private alpha.
 
-```bash
-npm run build
-npm run server
-```
+## Deploy
 
-The Node production server serves the compiled portfolio and its `/api` endpoints.
+The GitHub `main` branch is linked to Railway. `railway.json` selects the multi-stage Docker build, `/api/health` check, and restart policy. The Docker runtime contains the build and server only; no database or persistent volume is required. Wait for Railway **SUCCESS**, verify the health endpoint and page, and confirm GitHub CI before reporting a release complete.
 
-## Useful scripts
+See [Railway deployment](RAILWAY-DEPLOY.md), [responsive QA](RESPONSIVE-QA.md), and [security review](SECURITY-REVIEW.md).
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the React client and Node API together |
-| `npm run build` | Type-check and create the production client |
-| `npm run preview` | Preview the Vite production output |
-| `npm run server` | Run the production Express server |
+## Contact and usage
 
-## Project structure
+GitHub: [@BezeeR](https://github.com/BezeeR) · Discord: `bezeer` (`171078389166243840`).
 
-```text
-src/
-├── components/        Visual effects, audio, transitions, and mockups
-├── data/projects.ts   Portfolio case-study content
-├── App.tsx            Project arena and contact experience
-└── styles.css         Layout, palette, animation, and responsive system
-
-server/
-└── index.ts           Express API and SQLite persistence
-
-.github/workflows/
-└── ci.yml             Automated production-build check
-```
-
-## Design and quality notes
-
-- [Design system](DESIGN-SYSTEM.md)
-- [Responsive and reliability QA](RESPONSIVE-QA.md)
-- [v0.4 changelog](CHANGELOG-v0.4.md)
-- [StratBoard integration changelog](CHANGELOG-stratboard.md)
-- [GitHub Desktop setup](GITHUB-DESKTOP-SETUP.md)
-
-## Hosting
-
-GitHub hosts the source repository and runs the build workflow. The complete application requires a Node-capable host because GitHub Pages cannot run the Express and SQLite backend. A static-only deployment would require replacing the contact endpoint with a hosted form or serverless service.
-
-## Contact
-
-- GitHub: [@BezeeR](https://github.com/BezeeR)
-- Discord: `bezeer`
-- Discord user ID: `171078389166243840`
-
-## Project status
-
-Active portfolio development. CardSlate is currently represented as a feature-frozen private-beta product while real-user reliability testing is underway.
-
-## Usage
-
-No open-source license is included at this stage. The source remains publicly viewable if the repository is published publicly, but standard copyright protection applies unless a license is added later.
+No open-source license is included. Publicly viewable source retains standard copyright protection.

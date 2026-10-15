@@ -1,25 +1,26 @@
 import type { Project } from "../data/projects";
+import afterhoursPreview from "../assets/afterhours.webp";
 
 function DesktopVisual() {
   return (
     <div className="device desktop-device">
       <div className="window-bar"><span /><span /><span /><b>CardSlate // INVENTORY</b></div>
       <div className="desktop-grid">
-        <aside>
+        <div className="desktop-sidebar">
           <img src="./assets/cardslate-icon.svg" alt="" />
           {["Dashboard", "Inventory", "Price Watch", "Convention", "Cloud"].map((item, index) => (
             <div className={index === 1 ? "active" : ""} key={item}>{item}</div>
           ))}
-        </aside>
-        <main>
-          <header><div><small>PORTFOLIO VALUE</small><strong>$24,862.40</strong></div><button>+ Add Cards</button></header>
+        </div>
+        <div className="desktop-content">
+          <header><div><small>PORTFOLIO VALUE</small><strong>$24,862.40</strong></div><span className="mock-button">+ Add Cards</span></header>
           <div className="mini-stats"><span><small>CARDS</small><b>1,284</b></span><span><small>7D CHANGE</small><b>+4.8%</b></span><span><small>TO SYNC</small><b>0</b></span></div>
           <div className="mock-table">
             {["Umbreon ex", "Charizard VMAX", "Luffy SEC", "Mewtwo GX"].map((name, index) => (
               <div key={name}><i className={`art art-${index}`} /><span><b>{name}</b><small>Near Mint · English</small></span><em>${[248, 134, 96, 81][index]}.00</em></div>
             ))}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
@@ -31,7 +32,7 @@ function WebsiteVisual() {
       <div className="browser-bar"><span /><span /><span /><div>cardslate.app</div></div>
       <div className="website-hero">
         <div className="site-nav"><img src="./assets/cardslate-icon.svg" alt="" /><b>CardSlate</b><span>Features&nbsp;&nbsp; Companion&nbsp;&nbsp; Download</span></div>
-        <div className="site-copy"><small>TCG OPERATIONS, REBUILT</small><h3>Run the collection.<br />Own the event.</h3><p>Inventory, pricing, and convention sales in one focused system.</p><button>Download private beta</button></div>
+        <div className="site-copy"><small>TCG OPERATIONS, REBUILT</small><p className="mock-title">Run the collection.<br />Own the event.</p><p>Inventory, pricing, and convention sales in one focused system.</p><span className="mock-button">Download private beta</span></div>
         <DesktopVisual />
       </div>
     </div>
@@ -47,7 +48,7 @@ function MobileVisual() {
         <div className="phone-stats"><span><small>SALES</small><b>$1,248</b></span><span><small>CASH</small><b>$684</b></span></div>
         <div className="phone-search">Search booth inventory...</div>
         {["Umbreon ex", "Luffy SEC", "Pikachu V"].map((name, index) => <div className="phone-row" key={name}><i className={`art art-${index}`} /><span><b>{name}</b><small>{index + 1} available</small></span><em>${[248, 96, 72][index]}</em></div>)}
-        <button className="checkout-button">Open checkout · 2 items</button>
+        <span className="checkout-button">Open checkout · 2 items</span>
       </div>
       <div className="sync-orbit"><span>DESKTOP</span><b>↔</b><span>CLOUD</span></div>
     </div>
@@ -64,6 +65,8 @@ function TCGBudsVisual() {
           alt="TCG Buds content-first storefront homepage preview"
           loading="lazy"
           decoding="async"
+          width={1600}
+          height={900}
         />
         <div className="tcg-buds-preview-status" aria-hidden="true">
           <span>CONTENT FIRST</span>
@@ -85,6 +88,8 @@ function StratBoardVisual() {
           alt="StratBoard Counter-Strike 2 tactical strategy planner preview"
           loading="lazy"
           decoding="async"
+          width={1902}
+          height={906}
         />
         <div className="stratboard-preview-status" aria-hidden="true">
           <span>LOCAL-FIRST</span>
@@ -99,17 +104,32 @@ function StratBoardVisual() {
 function PackNightVisual() {
   return (
     <div className="device browser-device pack-night-device">
-      <div className="browser-bar"><span /><span /><span /><div>tcg buds // pack night live</div></div>
+      <div className="browser-bar"><span /><span /><span /><div>tcg buds // OPTCG simulator</div></div>
       <div className="pack-night-preview">
-        <div className="pack-night-head"><b>TCG BUDS</b><span>PACK NIGHT</span><i>● LIVE</i></div>
-        <div className="pack-night-balance"><small>YOUR BERRIES</small><strong>฿ 12,450</strong><span>DISCORD SYNCED</span></div>
-        <div className="pack-night-packs" aria-hidden="true">
-          <article><small>OP-01</small><b>ROMANCE<br />DAWN</b><i>OPEN PACK</i></article>
-          <article><small>OP-05</small><b>AWAKENING<br />OF THE NEW ERA</b><i>OPEN PACK</i></article>
-          <article><small>OP-09</small><b>EMPERORS<br />IN THE NEW WORLD</b><i>OPEN PACK</i></article>
+        <div className="pack-night-head"><b>TCG BUDS</b><span>SIM</span><i>OPTCG</i></div>
+        <div className="sim-table" aria-hidden="true">
+          <div className="sim-opponent"><span>PRACTICE CPU</span><b>ELITE</b></div>
+          <div className="sim-cards"><i /><i /><i /></div>
+          <div className="sim-center"><span>DON!! × 6</span><b>YOUR TURN</b><span>LIFE × 5</span></div>
+          <div className="sim-cards player-cards"><i /><i /><i /><i /></div>
+          <div className="sim-caption">PLAY · ATTACK · COUNTER</div>
         </div>
-        <div className="pack-night-actions"><span>MY COLLECTION</span><span>PACK BATTLE</span><span>MARKETPLACE</span></div>
+        <div className="pack-night-actions"><span>SIM DECKS</span><span>PACK NIGHT</span><span>COLLECTION</span></div>
+        <p className="preview-note">Illustrated interface preview · Live test build</p>
       </div>
+    </div>
+  );
+}
+
+function AfterhoursVisual() {
+  return (
+    <div className="device browser-device afterhours-device">
+      <div className="browser-bar"><span /><span /><span /><div>afterhours // the night shift</div></div>
+      <div className="afterhours-preview">
+        <img src={afterhoursPreview} alt="Afterhours alpha trading screen with fictional coin markets, a candlestick chart, and a protected order ticket" width={1200} height={1692} loading="lazy" decoding="async" />
+        <span className="alpha-badge">ALPHA PREVIEW</span>
+      </div>
+      <div className="afterhours-preview-footer"><b>AFTERHOURS</b><span>FICTIONAL CR · NO CASH-OUT</span></div>
     </div>
   );
 }
@@ -145,5 +165,6 @@ export function ProjectVisual({ project }: { project: Project }) {
   if (project.visual === "tcg-buds") return <TCGBudsVisual />;
   if (project.visual === "stratboard") return <StratBoardVisual />;
   if (project.visual === "pack-night") return <PackNightVisual />;
+  if (project.visual === "afterhours") return <AfterhoursVisual />;
   return <PortfolioVisual />;
 }

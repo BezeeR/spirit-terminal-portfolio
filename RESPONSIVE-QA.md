@@ -1,80 +1,47 @@
-# Spirit Terminal v0.4 — QA and Optimization Report
+# Portfolio v0.5 — verification, 2026-10-15
 
-## Completed production checks
+## Checks completed
 
-- TypeScript project compilation: passed
-- Vite production build: passed
-- Production assets generated: passed
-- Express health endpoint: passed
-- Project API endpoint: passed
-- Valid contact message insertion into SQLite: passed
-- Invalid email rejection: passed with HTTP 400
-- Test contact row cleanup: passed
-- GitHub Actions build workflow retained
-- Final repository exclusion rules reviewed
+- TypeScript client/server checks and Vite production build pass.
+- Six HTTP tests pass: health/version, HTML and asset caching, Brotli/gzip/identity negotiation, security headers, retired personal-data endpoints, and missing/hidden/source-file 404s.
+- All eight project entries pass layout and technology-panel checks at 14 viewports: **112 project/viewport combinations**.
+- Viewports: 320×568, 360×740, 390×844, 620×850, 667×375, 760×360, 820×1180, 900×600, 901×700, 1024×768, 1180×740, 1280×720, 1440×900, and 1920×1080.
+- No document or project-stage horizontal overflow at the checked sizes.
+- Axe WCAG A/AA checks on the Afterhours view at all 14 sizes report zero violations. This covers the common navigation and controls as well as the new entry; it is not a WCAG certification.
+- Contact opens as a native modal, keeps background controls inert, closes with Escape, and restores trigger focus.
+- Project rail arrow/Home/End controls, information tabs, direct project links, reload, and skip navigation pass.
+- Blocked localStorage does not crash the app; the radio retains its intended default volume.
+- Mocked YouTube integration verifies opt-in loading/playback, a stable player host when switching projects, and pause on collapse. Actual YouTube playback and availability depend on the browser and external service.
+- Initial navigation makes no third-party request and no duplicate `/api/projects` request.
+- Full `npm audit` reports **zero advisories** after dependency updates.
+- Reviewed screenshots at 320px, 667px landscape, 1024px, 1440px, and 1920px, including the Afterhours preview and TCG Buds Sim entry.
 
-## Build output
+## Measured changes
 
-- HTML: approximately 1 KB
-- CSS: approximately 39 KB before gzip / 9.4 KB gzip
-- JavaScript: approximately 225 KB before gzip / 71 KB gzip
-- No external animation, audio, or UI runtime was added
+The baseline is commit `fa9d5e2` and the comparison uses production builds in the same headless Chromium 153 environment over loopback. Each row is an observed run, not a claim about every visitor’s network or device. “Project ready” means the first project is available without the boot overlay; it is distinct from LCP, which previously measured the boot screen itself.
 
-## Responsive layout coverage built into CSS
+| Viewport | Baseline project ready | Updated project ready | Baseline main-thread task time in 2 idle seconds | Updated idle task time |
+| --- | ---: | ---: | ---: | ---: |
+| 1440×900 | 1,913 ms | 280 ms | 70 ms | 12 ms |
+| 390×844 | 1,913 ms | 115 ms | 71 ms | 1 ms |
+| 667×375 | 1,905 ms | 121 ms | 70 ms | 10 ms |
+| 1024×768 | 1,895 ms | 184 ms | 64 ms | 8 ms |
 
-- 320–390 px compact phones
-- 391–620 px standard phones
-- 621–900 px tablets and mobile landscape
-- 901–1180 px small laptops
-- 1181–1450 px standard desktop
-- 1451–1799 px large desktop
-- 1800 px+ wide and ultrawide displays
-- Dedicated short-height desktop behavior below 760 px
-- Dedicated mobile landscape behavior below 540 px height
+The baseline landscape page overflowed horizontally by 50px at 667×375; the update has zero overflow. Updated observations report zero cumulative layout shift.
 
-## Mobile behavior
+The old live JavaScript response was **233,753 uncompressed bytes**, even when the request accepted compression. The updated bundle is about **231 KB decoded / 67.7 KB Brotli / 72.5 KB gzip**. Fingerprinted JS/CSS now cache immutably; HTML and unversioned previews revalidate. The 123 KB Afterhours WebP loads when that project is selected.
 
-1. Sticky project selector
-2. Project introduction
-3. Project visual and telemetry
-4. Techniques or Loadout
-5. Previous/next project controls
+## Reproduce
 
-Swipe navigation requires a deliberate horizontal movement and ignores predominantly vertical gestures.
+```bash
+npm ci
+npm run build
+npm test
+npx playwright install chromium
+npm run test:browser
+npm audit
+```
 
-## Performance changes
+On Linux CI use `npx playwright install --with-deps chromium`. Set `PORTFOLIO_BROWSER_EXECUTABLE_PATH` to reuse an existing Chromium executable. Browser artifacts are written under ignored `test-results/portfolio/` and GitHub CI uploads them if a check fails.
 
-- Canvas pixel ratio capped lower than native high-DPI resolution
-- Lower Canvas particle count and frame rate on touch/coarse-pointer devices
-- Canvas redraw paused while the tab is hidden
-- Audio nodes created only after the visitor presses play
-- Audio uses a look-ahead scheduler rather than relying on a single long interval for note timing
-- Audio scheduler pauses when hidden and audio context suspends after mute
-- Background artwork is CSS/Canvas rather than large video or image downloads
-- API project request aborts after 1.8 seconds and immediately falls back to bundled data
-- Boot sequence runs once per tab session
-
-## Accessibility checks implemented
-
-- Skip link
-- Visible keyboard focus
-- Semantic tab state
-- Escape-to-close contact modal
-- Modal focus containment
-- Reduced-motion support
-- Increased-contrast support
-- Safe-area insets
-- Audio starts off
-
-## Environment limitation
-
-The workspace Chromium installation is managed with a global URL block policy, so a fresh automated visual browser screenshot pass could not be executed in this final turn. The production build, API behavior, SQLite write path, responsive breakpoints, overflow containment rules, and accessibility fallbacks were reviewed and tested at code/build level.
-
-## Recommended final real-device checks before publishing
-
-- iPhone Safari at 390 px width
-- Android Chrome around 360–412 px width
-- A 1366 × 768 Windows laptop
-- A 1920 × 1080 desktop
-- Phone speakers and headphones at multiple volume settings
-- Contact delivery on the selected production host
+No Supabase configuration, migration, or player-data change is involved in this portfolio release. Afterhours remains labeled private alpha; the portfolio does not imply a completed Discord launch.

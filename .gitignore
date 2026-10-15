@@ -6,6 +6,7 @@ server/data/*.sqlite-wal
 .env
 .DS_Store
 *.tsbuildinfo
+test-results/
 vite.config.js
 vite.config.d.ts
 src/**/*.js

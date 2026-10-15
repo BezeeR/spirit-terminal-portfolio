@@ -1,6 +1,14 @@
+import { useEffect, useState } from "react";
+
 export function BroadcastAtmosphere() {
+  const [paused, setPaused] = useState(() => document.hidden);
+  useEffect(() => {
+    const handleVisibility = () => setPaused(document.hidden);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
   return (
-    <div className="broadcast-atmosphere" aria-hidden="true">
+    <div className={`broadcast-atmosphere${paused ? " is-paused" : ""}`} aria-hidden="true">
       <div className="night-sky" />
       <div className="moon-haze" />
       <div className="arena-beam beam-one" />

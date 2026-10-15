@@ -152,13 +152,13 @@ function getSavedVolume(): number {
     return DEFAULT_VOLUME;
   }
 
-  const storedVolume = Number(window.localStorage.getItem(VOLUME_KEY));
-
-  if (!Number.isFinite(storedVolume)) {
+  try {
+    const saved = window.localStorage.getItem(VOLUME_KEY);
+    const storedVolume = saved === null ? DEFAULT_VOLUME : Number(saved);
+    return Number.isFinite(storedVolume) ? Math.min(1, Math.max(0, storedVolume)) : DEFAULT_VOLUME;
+  } catch {
     return DEFAULT_VOLUME;
   }
-
-  return Math.min(1, Math.max(0, storedVolume));
 }
 
 function formatTime(seconds: number): string {
@@ -441,7 +441,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
     const safeVolume = Math.min(1, Math.max(0, nextVolume));
 
     setVolume(safeVolume);
-    window.localStorage.setItem(VOLUME_KEY, String(safeVolume));
+    try { window.localStorage.setItem(VOLUME_KEY, String(safeVolume)); } catch { /* Storage can be blocked in private browsing. */ }
     playerRef.current?.setVolume(Math.round(safeVolume * 100));
   }, []);
 
@@ -596,7 +596,7 @@ export function AmbientAudio() {
           type="range"
           min="0"
           max="1"
-          step="0.05"
+          step="0.01"
           value={volume}
           onChange={(event) => updateVolume(Number(event.currentTarget.value))}
           aria-label="Video volume"
@@ -643,11 +643,10 @@ export function AmbientAudioPanel() {
         <div id={hostId} className="radio-video-host" />
       </div>
 
-      <div className="radio-queue" role="list" aria-label="Midnight Radio queue">
+      <div className="radio-queue" role="group" aria-label="Midnight Radio controls">
         {TRACKS.map((track, index) => (
           <button
             type="button"
-            role="listitem"
             className={index === activeTrackIndex ? "active" : ""}
             onClick={() => selectTrack(index)}
             key={track.id}

@@ -1,4 +1,4 @@
-# Spirit Terminal: After Hours — Design System v0.4
+# Spirit Terminal: After Hours — Design System v0.5
 
 ## Creative direction
 
@@ -62,7 +62,6 @@ Tablet and mobile switch to:
 - Sparse energy particles
 - Rain, fog, and broadcast scan
 - Film grain and faint scanlines
-- Adaptive Canvas signal glyphs
 
 All decorative layers are fixed, contained, noninteractive, and hidden from assistive technology.
 
@@ -75,30 +74,17 @@ All decorative layers are fixed, contained, noninteractive, and hidden from assi
 
 ## Motion and performance
 
-- Boot sequence runs once per tab session
-- Title scramble is brief and reduced-motion aware
-- Project changes use a short fade and vertical settle
-- Mobile Canvas uses fewer particles, a lower pixel ratio, and approximately 20 FPS
-- Desktop Canvas targets approximately 30 FPS
-- Canvas and audio pause while the document is hidden
-- Rain, fog, scan, particles, and meters stop under reduced-motion preferences
-- No imported animation library is required
+- Project content appears immediately; no blocking boot sequence or title scrambling.
+- Project changes use a short CSS fade and vertical settle.
+- Compact screens use static atmospheric artwork without animated fog, rain, or Canvas.
+- Background motion and audio pause while the document is hidden.
+- Reduced-motion preferences stop decorative animation and smooth scrolling.
+- Bundled case-study data needs no content API request.
+- Production JavaScript/CSS use prebuilt Brotli/gzip and fingerprinted cache keys.
 
 ## Audio
 
-“Midnight Radio” is original procedural Web Audio:
-
-- 82 BPM with subtle swing
-- Seventh-chord pad progression
-- Low sine bass
-- Dusty kick, snare, and hats
-- Soft detuned keys
-- Vinyl-style noise bed
-- Short reverb and restrained delay
-- Low maximum gain
-- Look-ahead scheduling to reduce timer jitter
-
-Audio is opt-in and never surprises visitors.
+Midnight Radio contains one Nujabes YouTube set with a visible docked player, play/pause, volume, and collapse controls. YouTube loads only after the visitor opens or plays it. Playback pauses when the player collapses or the document is hidden. Browser storage is optional and failures do not prevent loading the site.
 
 ## Accessibility
 
