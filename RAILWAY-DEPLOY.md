@@ -9,7 +9,7 @@ Production: **https://www.bezeer.app/**
 - Build: multi-stage `Dockerfile`, selected by `railway.json`
 - Runtime: Node 22.23.3; `npm start` (`node --import tsx server/index.ts`)
 - Listen: Railway’s injected `PORT`, bound to `0.0.0.0`
-- Health check: `/api/health`, expected `{ "ok": true, "service": "portfolio", "version": "0.5.1" }`
+- Health check: `/api/health`, expected `{ "ok": true, "service": "portfolio", "version": "0.5.2" }`
 
 Run the build, HTTP tests, browser checks, and dependency audit before pushing. The GitHub-linked service deploys new `main` commits automatically. Confirm the matching commit, terminal **SUCCESS**, health response, compressed asset headers, and live page after deployment. A queued or building deployment is not a completed release.
 

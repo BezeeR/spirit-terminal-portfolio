@@ -1,4 +1,10 @@
-# Portfolio verification — 2026-10-15
+# Portfolio verification — 2026-10-16
+
+## v0.5.2 mobile radio update
+
+The first-visit broadcast remains on mobile. Coarse-pointer, no-hover devices get “Enter & Open Radio”: the app reveals and focuses the visible YouTube player, with native tap-to-play instead of delayed autoplay. Music-enabled touch returns prepare the player without autoplay or scrolling; quiet entry, pause, and collapse still persist. A ready player's explicit Play stays in the original click handler. Desktop autoplay keeps its native-control fallback.
+
+All 19 intro/music checks pass. The suite covers touch entry at 320×568, 390×844, 667×375, and 820×1180, in addition to the existing four intro layouts. Checks exercise a button inside a cross-origin test iframe, the revealed 200×200px-or-larger video viewport, focus, horizontal overflow, accessibility, quiet returns, return playback, failed API retry, and the synchronous ready-player click. The native-control prompt and test Play button stay below sticky navigation, including landscape. The YouTube service and blocked programmatic playback are mocked in Chromium touch emulation. This does not verify audio on physical iOS/Android devices or replace browser autoplay policy; a device check should tap Play in the visible video. The 112 project/viewport regressions and six HTTP checks also pass, with zero dependency advisories.
 
 ## v0.5.1 intro and music update
 

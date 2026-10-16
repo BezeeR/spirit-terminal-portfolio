@@ -540,6 +540,10 @@ h1 { max-width: 760px; margin: 20px 0 9px; color: #f0f0f0; font-size: clamp(3rem
 .boot-footnote { display: block; margin-top: 16px; color: #a0a0ab; font: .68rem/1.5 ui-sans-serif, system-ui, sans-serif; }
 .radio-video-frame { min-height: 200px; }
 .radio-play-prompt { display: grid; gap: 10px; padding: 12px; color: #c7dce5; font: .75rem/1.5 ui-sans-serif, system-ui, sans-serif; }
+.radio-play-prompt b { color: #79d3ff; font: 700 .65rem var(--font-mono); letter-spacing: .1em; }
+.radio-dock { scroll-margin-block: 12px; }
+@media (max-width: 900px) { .radio-dock { scroll-margin-top: calc(128px + var(--safe-top)); } }
+@media (max-width: 900px) and (max-height: 440px) { .radio-video-frame { height: 200px; aspect-ratio: auto; } }
 .radio-play-prompt button { min-height: 44px; padding: 8px; border: 1px solid var(--cyan); background: #00a8ff1a; color: #79d3ff; cursor: pointer; font: 700 .7rem var(--font-mono); }
 @media (max-width: 390px) { .boot-actions { display: grid; } .boot-frame { padding: 22px 18px; } .boot-channel { font-size: .52rem; gap: 10px; } }
 @media (max-height: 600px) {

@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { MUSIC_PREFERENCE_KEY, readPreference, writePreference } from "../lib/preferences";
 
@@ -21,6 +22,22 @@ const TRACKS = [
 const VOLUME_KEY = "spirit-terminal-midnight-radio-volume";
 const DEFAULT_VOLUME = 0.34;
 const TIME_UPDATE_MS = 500;
+const TOUCH_PLAYBACK_QUERY = "(hover: none) and (pointer: coarse)";
+
+function subscribeTouchPlayback(onChange: () => void) {
+  const query = window.matchMedia(TOUCH_PLAYBACK_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function revealPlayer() {
+  window.requestAnimationFrame(() => {
+    const panel = document.getElementById("midnight-radio-video-panel");
+    if (!panel || panel.hidden) return;
+    panel.focus({ preventScroll: true });
+    panel.scrollIntoView({ block: "start", behavior: "instant" });
+  });
+}
 
 interface YouTubeVideoData {
   title?: string;
@@ -91,6 +108,7 @@ interface RadioContextValue {
   ready: boolean;
   title: string;
   trackTitles: string[];
+  touchPlayback: boolean;
   volume: number;
   collapsePlayer: () => void;
   openPlayer: () => void;
@@ -221,9 +239,11 @@ export function useRadio(): RadioContextValue {
 }
 
 export function AmbientAudioProvider({ children }: { children: ReactNode }) {
+  const touchPlayback = useSyncExternalStore(subscribeTouchPlayback, () => window.matchMedia(TOUCH_PLAYBACK_QUERY).matches, () => false);
   const hostId = `midnight-radio-${useId().replace(/:/g, "")}`;
   const playerRef = useRef<YouTubePlayer | null>(null);
   const playerPromiseRef = useRef<Promise<YouTubePlayer> | null>(null);
+  const preparingPlayerRef = useRef(false);
   const timeTimerRef = useRef<number | null>(null);
   const resumeAfterTabRef = useRef(false);
   const playbackRequestedRef = useRef(false);
@@ -382,6 +402,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
                 setAutoplayBlocked(true);
                 setPlaying(false);
                 stopTimeUpdates();
+                if (touchPlayback) revealPlayer();
               },
             },
           });
@@ -394,7 +415,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       playerPromiseRef.current = null;
       throw error;
     }
-  }, [hostId, startTimeUpdates, stopTimeUpdates, updatePlaybackDetails, volume]);
+  }, [hostId, startTimeUpdates, stopTimeUpdates, touchPlayback, updatePlaybackDetails, volume]);
 
   const playTrack = useCallback(
     (index: number, autoplay: boolean) => {
@@ -426,7 +447,8 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
     expandedRef.current = true;
     setExpanded(true);
     setAudioError(null);
-  }, []);
+    if (touchPlayback) revealPlayer();
+  }, [touchPlayback]);
 
   const collapsePlayer = useCallback(() => {
     playbackRequestedRef.current = false;
@@ -441,10 +463,25 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   }, [stopTimeUpdates]);
 
   const startPlayback = useCallback(async (automatic = false) => {
-    playbackRequestedRef.current = true;
+    const directPlayer = playerRef.current;
+    // Touch visitors start inside the video after it loads. A ready player's
+    // explicit Play stays in the original click handler, before any await.
+    const prepareOnly = touchPlayback && (automatic || !directPlayer || !expanded);
+    playbackRequestedRef.current = !prepareOnly;
     setAutoplayBlocked(false);
+    setAudioError(null);
     if (!automatic) writePreference(MUSIC_PREFERENCE_KEY, "on");
+    preparingPlayerRef.current = true;
     try {
+      if (prepareOnly && !automatic) revealPlayer();
+      if (directPlayer && !prepareOnly) {
+        expandedRef.current = true;
+        setExpanded(true);
+        directPlayer.setVolume(Math.round(volume * 100));
+        directPlayer.playVideo();
+        return;
+      }
+
       if (!expanded) {
         expandedRef.current = true;
         setExpanded(true);
@@ -452,6 +489,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       }
 
       const player = await ensurePlayer();
+      if (prepareOnly) return;
       if (!playbackRequestedRef.current || document.hidden) return;
       player.setVolume(Math.round(volume * 100));
       player.playVideo();
@@ -461,8 +499,10 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
         error instanceof Error ? error.message : "The video could not be started.",
       );
       setPlaying(false);
+    } finally {
+      preparingPlayerRef.current = false;
     }
-  }, [ensurePlayer, expanded, volume]);
+  }, [ensurePlayer, expanded, touchPlayback, volume]);
 
   const togglePlayback = useCallback(async () => {
     if (!playing) return startPlayback();
@@ -481,25 +521,13 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       setAutoplayBlocked(false);
       expandedRef.current = true;
       setExpanded(true);
-      playTrack(index, true);
+      playTrack(index, Boolean(playerRef.current));
 
       if (!playerRef.current) {
-        void waitForLayout()
-          .then(() => ensurePlayer())
-          .then((player) => {
-            if (!playbackRequestedRef.current || document.hidden) return;
-            player.setVolume(Math.round(volume * 100));
-            player.playVideo();
-          })
-          .catch((error) => {
-            console.error("Unable to load queued Midnight Radio track:", error);
-            setAudioError(
-              error instanceof Error ? error.message : "The track could not be loaded.",
-            );
-          });
+        void startPlayback();
       }
     },
-    [ensurePlayer, playTrack, volume],
+    [playTrack, startPlayback],
   );
 
   const updateVolume = useCallback((nextVolume: number) => {
@@ -511,7 +539,8 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!expanded || playerRef.current || playerPromiseRef.current) {
+    // An explicit start owns its load attempt, including failures and retries.
+    if (!expanded || playerRef.current || playerPromiseRef.current || preparingPlayerRef.current) {
       return;
     }
 
@@ -573,6 +602,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       ready,
       title,
       trackTitles,
+      touchPlayback,
       volume,
       collapsePlayer,
       openPlayer,
@@ -598,6 +628,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       togglePlayback,
       startPlayback,
       trackTitles,
+      touchPlayback,
       updateVolume,
       volume,
     ],
@@ -616,6 +647,7 @@ export function AmbientAudio() {
     playing,
     ready,
     title,
+    touchPlayback,
     volume,
     collapsePlayer,
     openPlayer,
@@ -623,6 +655,7 @@ export function AmbientAudio() {
     updateVolume,
   } = useRadio();
   const timeLabel = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+  const needsTap = !playing && (autoplayBlocked || (touchPlayback && ready));
 
   return (
     <div
@@ -635,7 +668,7 @@ export function AmbientAudio() {
         type="button"
         onClick={() => void togglePlayback()}
         aria-pressed={playing}
-        aria-label={playing ? `Pause ${title}` : autoplayBlocked ? `Start music: ${title}` : `Play ${title}`}
+        aria-label={playing ? `Pause ${title}` : needsTap ? `Start music: ${title}` : `Play ${title}`}
         title={playing ? "Pause video" : "Open docked player and play video"}
       >
         <span className="audio-icon" aria-hidden="true">
@@ -643,11 +676,11 @@ export function AmbientAudio() {
         </span>
 
         <span className="audio-label">
-          <b title={title}>{autoplayBlocked ? "TAP TO START MUSIC" : title}</b>
+          <b title={title}>{needsTap ? "TAP TO START MUSIC" : title}</b>
           <small>
             {audioError
               ? "PLAYER UNAVAILABLE"
-              : `${timeLabel} • ${playing ? "PLAYING" : ready ? "READY" : "YOUTUBE"}`}
+              : `${timeLabel} • ${playing ? "PLAYING" : ready ? "READY" : expanded ? "LOADING" : "YOUTUBE"}`}
           </small>
         </span>
 
@@ -695,8 +728,11 @@ export function AmbientAudioPanel() {
     autoplayBlocked,
     expanded,
     hostId,
+    playing,
+    ready,
     title,
     trackTitles,
+    touchPlayback,
     collapsePlayer,
     selectTrack,
     startPlayback,
@@ -709,8 +745,16 @@ export function AmbientAudioPanel() {
       id="midnight-radio-video-panel"
       className={`radio-dock${expanded ? " is-open" : ""}`}
       aria-label="Midnight Radio YouTube player and queue"
+      tabIndex={-1}
       hidden={!expanded}
     >
+      {!audioError && (touchPlayback || autoplayBlocked) && (
+        <div className="radio-play-prompt" role="status">
+          <b>MIDNIGHT RADIO</b>
+          <span>{playing ? "Now playing. Pause in the video or use the top bar." : ready ? "Tap ▶ in the video below to start the Nujabes set." : "Loading the player. Tap ▶ in the video when it’s ready."}</span>
+          {!touchPlayback && <button type="button" onClick={() => void startPlayback()}>PLAY MUSIC ▶</button>}
+        </div>
+      )}
       <div className="radio-video-frame">
         <div id={hostId} className="radio-video-host" />
       </div>
@@ -726,7 +770,7 @@ export function AmbientAudioPanel() {
           >
             <span>{String(index + 1).padStart(2, "0")}</span>
             <b title={trackTitles[index]}>{trackTitles[index]}</b>
-            <i>{index === activeTrackIndex ? "LIVE" : "PLAY"}</i>
+            <i>{index === activeTrackIndex ? playing ? "PLAYING" : ready ? "READY" : "LOADING" : "PLAY"}</i>
           </button>
         ))}
         <a
@@ -751,7 +795,6 @@ export function AmbientAudioPanel() {
       </div>
 
       {audioError && <p className="radio-error" role="status">{audioError}</p>}
-      {autoplayBlocked && <div className="radio-play-prompt" role="status"><span>Music is ready. Tap Play to start.</span><button type="button" onClick={() => void startPlayback()}>PLAY MUSIC ▶</button></div>}
     </section>
   );
 }

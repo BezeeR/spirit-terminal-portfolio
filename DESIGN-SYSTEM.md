@@ -84,7 +84,7 @@ All decorative layers are fixed, contained, noninteractive, and hidden from assi
 
 ## Audio
 
-Midnight Radio contains one Nujabes YouTube set with a visible docked player, play/pause, volume, and collapse controls. Music entry requests playback; returning visitors with music enabled get an automatic attempt. A blocked attempt shows Play instead of claiming audio is playing. Quiet entry, pause, and collapse persist; temporary hidden-tab pauses do not disable the preference. The embedded viewport stays at least 200×200px. Browser storage is optional and failures do not prevent entry.
+Midnight Radio contains one Nujabes YouTube set with a visible docked player, play/pause, volume, and collapse controls. The first-visit broadcast stays on touch screens: “Enter & Open Radio” reveals the native video Play control with a clear tap instruction. Enabled touch returns prepare that control without autoplay or an automatic scroll; enabled desktop returns attempt playback. A ready player's explicit Play runs before any asynchronous work. Blocked playback points to the native video control and never claims audio is playing. The touch status stays above the video during playback to keep the control's position stable. Quiet entry, pause, and collapse persist; temporary hidden-tab pauses do not disable the preference. The embedded viewport stays at least 200×200px. Browser storage is optional and failures do not prevent entry.
 
 ## Accessibility
 

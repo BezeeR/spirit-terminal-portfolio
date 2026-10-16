@@ -4,7 +4,7 @@ import { useRadio } from "./AmbientAudio";
 
 const LINES = ["TUNING AFTER_HOURS_SIGNAL...", "OPENING SPIRIT_TERMINAL...", "PROJECT_ARENA READY", "MIDNIGHT BLOCK ONLINE"];
 
-function WelcomeIntro({ onEnter }: { onEnter: (music: boolean) => void }) {
+function WelcomeIntro({ onEnter, touchPlayback }: { onEnter: (music: boolean) => void; touchPlayback: boolean }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [lineCount, setLineCount] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches ? LINES.length : 1);
 
@@ -31,12 +31,12 @@ function WelcomeIntro({ onEnter }: { onEnter: (music: boolean) => void }) {
           {LINES.slice(0, lineCount).map((line, index) => <p key={line}><span>{String(index + 1).padStart(2, "0")}</span>{line}</p>)}
         </div>
         <div className="boot-progress" aria-hidden="true"><i style={{ width: `${lineCount / LINES.length * 100}%` }} /></div>
-        <p className="boot-description" id="welcome-description">Welcome to BezeeR’s portfolio. Settle into the night shift with the Nujabes set, or explore quietly.</p>
+        <p className="boot-description" id="welcome-description">{touchPlayback ? "Welcome to BezeeR’s portfolio. Open the Nujabes set and tap Play, or explore quietly." : "Welcome to BezeeR’s portfolio. Settle into the night shift with the Nujabes set, or explore quietly."}</p>
         <div className="boot-actions">
-          <button type="button" onClick={() => onEnter(true)} autoFocus>ENTER WITH MUSIC <span aria-hidden="true">▶</span></button>
+          <button type="button" onClick={() => onEnter(true)} autoFocus>{touchPlayback ? "ENTER & OPEN RADIO" : "ENTER WITH MUSIC"} <span aria-hidden="true">▶</span></button>
           <button type="button" onClick={() => onEnter(false)}>ENTER QUIETLY</button>
         </div>
-        <small className="boot-footnote">You can enter immediately. Playback and volume controls stay in the top bar.</small>
+        <small className="boot-footnote">{touchPlayback ? "Music starts with a tap in the player. You can enter immediately." : "You can enter immediately. Playback and volume controls stay in the top bar."}</small>
       </div>
     </dialog>
   );
@@ -45,7 +45,7 @@ function WelcomeIntro({ onEnter }: { onEnter: (music: boolean) => void }) {
 export function PortfolioArrival() {
   const [firstVisit, setFirstVisit] = useState(() => readPreference(INTRO_SEEN_KEY) !== "1");
   const startupAttempted = useRef(false);
-  const { startPlayback } = useRadio();
+  const { startPlayback, touchPlayback } = useRadio();
 
   useEffect(() => {
     if (firstVisit || startupAttempted.current) return;
@@ -59,8 +59,8 @@ export function PortfolioArrival() {
     writePreference(MUSIC_PREFERENCE_KEY, music ? "on" : "off");
     setFirstVisit(false);
     if (music) void startPlayback();
-    window.requestAnimationFrame(() => document.getElementById("project-content")?.focus({ preventScroll: true }));
+    if (!music || !touchPlayback) window.requestAnimationFrame(() => document.getElementById("project-content")?.focus({ preventScroll: true }));
   };
 
-  return firstVisit ? <WelcomeIntro onEnter={enter} /> : null;
+  return firstVisit ? <WelcomeIntro onEnter={enter} touchPlayback={touchPlayback} /> : null;
 }

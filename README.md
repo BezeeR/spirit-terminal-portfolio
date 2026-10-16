@@ -50,12 +50,12 @@ npm start
 ## Architecture
 
 - **React 19 + TypeScript + Vite** for the project workspace.
-- **First-visit broadcast intro** with immediate “Enter with music” and “Enter quietly” controls. The animation never disables entry, and reduced-motion visitors get the completed log.
+- **First-visit broadcast intro** with immediate music/quiet entry. Touch visitors get “Enter & Open Radio,” followed by a tap in the video; desktop visitors get “Enter with music.” The animation never disables entry, and reduced-motion visitors get the completed log.
 - **Bundled project content**, avoiding a duplicate content API request.
 - **Express** serves the production build and health check with security headers.
 - **Brotli/gzip** delivery and immutable caching for fingerprinted assets; HTML and unversioned previews revalidate.
 - **CSS atmosphere**, static on compact screens and reduced-motion aware. Hidden tabs pause background motion and audio.
-- **YouTube IFrame API** for the Nujabes set. “Enter with music” requests playback after the player is ready. Returning visitors skip the intro and get an autoplay attempt unless they chose quiet entry, paused, or collapsed the player. If the browser blocks audible playback, a Play button remains available. Playback/volume controls stay accessible; no browser policy is bypassed.
+- **YouTube IFrame API** for the Nujabes set. Touch entry prepares the visible player and brings its native Play control into view, without a delayed autoplay attempt. Desktop music entry requests playback. Return visits skip the intro; enabled touch visits prepare native Play, while enabled desktop visits attempt autoplay. Explicit Play on a ready player runs directly in the click handler. Playback controls and a native Play fallback remain accessible; no browser policy is bypassed.
 - **Direct Discord/GitHub contact** through a native modal dialog. No names, email addresses, or messages are collected or stored by this site.
 - **GitHub Actions** checks build, HTTP behavior, dependencies, accessibility, and browser regressions.
 
@@ -65,7 +65,7 @@ The portfolio has no Supabase connection. Supabase appears in case-study stacks 
 
 The intro is shown once per browser, with session storage as a fallback. If both forms of storage are blocked, entry still works but the preference cannot survive a reload. “Enter quietly” and Escape enter without loading YouTube. A later explicit Play enables music again. Pausing through either the portfolio or the YouTube player, or collapsing the dock, remembers a quiet return. Volume remains saved separately.
 
-First visits do not load YouTube until music is chosen. Returning visits with music enabled load it automatically, so those visits may make third-party requests. Audible autoplay depends on browser permissions and prior interaction; the UI reports blocked playback accurately and offers a manual Play control. The visible YouTube player is at least 200×200px.
+First visits do not load YouTube until music is chosen. Returning visits with music enabled load it automatically, so those visits may make third-party requests. Touch devices with a coarse primary pointer and no hover use native tap-to-play rather than promising audible autoplay. Opening radio explicitly reveals and focuses the player; preparing it on return does not scroll away from the projects. A blocked custom Play attempt also reveals the native control. Desktop autoplay depends on browser permissions and prior interaction. The visible YouTube player stays at least 200×200px, and its status reflects actual playback.
 
 ## Project destinations
 

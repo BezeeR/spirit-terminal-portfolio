@@ -1,4 +1,4 @@
-# Portfolio security review — 2026-10-15
+# Portfolio security review — 2026-10-16
 
 ## Scope
 
@@ -29,7 +29,7 @@ The audit included the [proxy-addr advisory](https://github.com/advisories/GHSA-
 - Project URL overrides permit HTTPS without username/password and otherwise use known defaults.
 - CSP restricts scripts to the portfolio and YouTube player hosts; objects, framing, and form submissions are blocked. Inline styles remain allowed for the React accent and existing presentation styles; inline scripts and `unsafe-eval` are not allowed.
 - Responses include `nosniff`, `X-Frame-Options: DENY`, referrer and permissions policies, and one-year HSTS for the portfolio host. HSTS does not include subdomains.
-- In v0.5.1, first visitors choose music or quiet entry; returning visitors with music enabled load YouTube and attempt playback automatically. Quiet entry, pause, and collapse preserve a quiet return. Browser autoplay restrictions are respected, with an accurate Play fallback. External video availability and playback restrictions remain under YouTube/browser control.
+- In v0.5.2, first visitors retain music/quiet entry; touch music entry prepares and reveals native Play instead of attempting delayed autoplay. Enabled touch returns prepare the player without autoplay; enabled desktop returns make an automatic attempt. Quiet entry, pause, and collapse preserve a quiet return. No new origin, permission, data collection, or dependency is added. Browser restrictions and external video availability remain under YouTube/browser control.
 - GitHub workflow permissions are limited to reading repository contents.
 - HTTP regressions exercise asset encoding/cache negotiation, security headers, retired endpoints, and hidden/source-file paths.
 
