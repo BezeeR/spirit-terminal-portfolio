@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { MUSIC_PREFERENCE_KEY, readPreference, writePreference } from "../lib/preferences";
 
 const TRACKS = [
   {
@@ -36,6 +37,7 @@ interface YouTubePlayer {
   loadVideoById: (videoId: string) => void;
   cueVideoById: (videoId: string) => void;
   destroy: () => void;
+  getIframe?: () => HTMLIFrameElement;
 }
 
 interface YouTubePlayerEvent {
@@ -52,6 +54,7 @@ interface YouTubePlayerOptions {
     onReady: (event: YouTubePlayerEvent) => void;
     onStateChange: (event: YouTubePlayerEvent) => void;
     onError: (event: YouTubePlayerEvent) => void;
+    onAutoplayBlocked: (event: YouTubePlayerEvent) => void;
   };
 }
 
@@ -79,6 +82,7 @@ declare global {
 interface RadioContextValue {
   activeTrackIndex: number;
   audioError: string | null;
+  autoplayBlocked: boolean;
   currentTime: number;
   duration: number;
   expanded: boolean;
@@ -92,6 +96,7 @@ interface RadioContextValue {
   openPlayer: () => void;
   selectTrack: (index: number) => void;
   togglePlayback: () => Promise<void>;
+  startPlayback: (automatic?: boolean) => Promise<void>;
   updateVolume: (volume: number) => void;
 }
 
@@ -112,22 +117,33 @@ function loadYouTubeApi(): Promise<YouTubeNamespace> {
       'script[src="https://www.youtube.com/iframe_api"]',
     );
     const previousReadyHandler = window.onYouTubeIframeAPIReady;
+    let settled = false;
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      window.onYouTubeIframeAPIReady = previousReadyHandler;
+      reject(new Error("The YouTube player could not be loaded. You can retry Play or open the set on YouTube."));
+    };
+    const timeout = window.setTimeout(fail, 10000);
 
     window.onYouTubeIframeAPIReady = () => {
       previousReadyHandler?.();
 
       if (window.YT?.Player) {
+        settled = true;
+        window.clearTimeout(timeout);
         resolve(window.YT);
         return;
       }
 
-      reject(new Error("The YouTube player could not be initialized."));
+      fail();
     };
 
     if (existingScript) {
       existingScript.addEventListener(
         "error",
-        () => reject(new Error("The YouTube player could not be loaded.")),
+        fail,
         { once: true },
       );
       return;
@@ -138,10 +154,14 @@ function loadYouTubeApi(): Promise<YouTubeNamespace> {
     script.async = true;
     script.addEventListener(
       "error",
-      () => reject(new Error("The YouTube player could not be loaded.")),
+      fail,
       { once: true },
     );
     document.head.appendChild(script);
+  }).catch((error) => {
+    youtubeApiPromise = null;
+    document.querySelector('script[src="https://www.youtube.com/iframe_api"]')?.remove();
+    throw error;
   });
 
   return youtubeApiPromise;
@@ -153,7 +173,7 @@ function getSavedVolume(): number {
   }
 
   try {
-    const saved = window.localStorage.getItem(VOLUME_KEY);
+    const saved = readPreference(VOLUME_KEY);
     const storedVolume = saved === null ? DEFAULT_VOLUME : Number(saved);
     return Number.isFinite(storedVolume) ? Math.min(1, Math.max(0, storedVolume)) : DEFAULT_VOLUME;
   } catch {
@@ -190,7 +210,7 @@ function waitForLayout(): Promise<void> {
   });
 }
 
-function useRadio(): RadioContextValue {
+export function useRadio(): RadioContextValue {
   const context = useContext(RadioContext);
 
   if (!context) {
@@ -206,11 +226,15 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   const playerPromiseRef = useRef<Promise<YouTubePlayer> | null>(null);
   const timeTimerRef = useRef<number | null>(null);
   const resumeAfterTabRef = useRef(false);
+  const playbackRequestedRef = useRef(false);
+  const hasPlayedRef = useRef(false);
   const activeTrackIndexRef = useRef(0);
   const playTrackRef = useRef<(index: number, autoplay: boolean) => void>(() => undefined);
 
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const expandedRef = useRef(false);
+  expandedRef.current = expanded;
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [trackTitles, setTrackTitles] = useState<string[]>(() =>
@@ -220,6 +244,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(getSavedVolume);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const title = trackTitles[activeTrackIndex] ?? TRACKS[activeTrackIndex].fallbackTitle;
 
@@ -305,6 +330,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
             events: {
               onReady: (event) => {
                 playerRef.current = event.target;
+                event.target.getIframe?.().setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
                 event.target.setVolume(Math.round(volume * 100));
                 updatePlaybackDetails(event.target);
                 setReady(true);
@@ -315,18 +341,31 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
                 const isPlaying = state === YT.PlayerState.PLAYING;
 
                 setPlaying(isPlaying);
+                if (isPlaying) setAutoplayBlocked(false);
                 updatePlaybackDetails(event.target);
 
                 if (state === YT.PlayerState.ENDED) {
                   const nextIndex =
                     (activeTrackIndexRef.current + 1) % TRACKS.length;
-                  playTrackRef.current(nextIndex, true);
+                  if (playbackRequestedRef.current) playTrackRef.current(nextIndex, true);
                   return;
                 }
 
+                if (isPlaying && (!expandedRef.current || document.hidden)) {
+                  event.target.pauseVideo();
+                  return;
+                }
                 if (isPlaying) {
+                  hasPlayedRef.current = true;
+                  playbackRequestedRef.current = true;
+                  writePreference(MUSIC_PREFERENCE_KEY, "on");
                   startTimeUpdates(event.target);
                 } else {
+                  if (state === YT.PlayerState.PAUSED && hasPlayedRef.current && !document.hidden && expandedRef.current && playbackRequestedRef.current) {
+                    playbackRequestedRef.current = false;
+                    writePreference(MUSIC_PREFERENCE_KEY, "off");
+                  }
+                  if (state === YT.PlayerState.PAUSED) hasPlayedRef.current = false;
                   stopTimeUpdates();
                 }
               },
@@ -337,6 +376,12 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
                 setPlaying(false);
                 stopTimeUpdates();
                 reject(new Error(message));
+              },
+              onAutoplayBlocked: () => {
+                hasPlayedRef.current = false;
+                setAutoplayBlocked(true);
+                setPlaying(false);
+                stopTimeUpdates();
               },
             },
           });
@@ -378,31 +423,36 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   playTrackRef.current = playTrack;
 
   const openPlayer = useCallback(() => {
+    expandedRef.current = true;
     setExpanded(true);
     setAudioError(null);
   }, []);
 
   const collapsePlayer = useCallback(() => {
+    playbackRequestedRef.current = false;
+    writePreference(MUSIC_PREFERENCE_KEY, "off");
+    expandedRef.current = false;
     playerRef.current?.pauseVideo();
     resumeAfterTabRef.current = false;
     setPlaying(false);
     setExpanded(false);
+    setAutoplayBlocked(false);
     stopTimeUpdates();
   }, [stopTimeUpdates]);
 
-  const togglePlayback = useCallback(async () => {
+  const startPlayback = useCallback(async (automatic = false) => {
+    playbackRequestedRef.current = true;
+    setAutoplayBlocked(false);
+    if (!automatic) writePreference(MUSIC_PREFERENCE_KEY, "on");
     try {
-      if (playing) {
-        playerRef.current?.pauseVideo();
-        return;
-      }
-
       if (!expanded) {
+        expandedRef.current = true;
         setExpanded(true);
         await waitForLayout();
       }
 
       const player = await ensurePlayer();
+      if (!playbackRequestedRef.current || document.hidden) return;
       player.setVolume(Math.round(volume * 100));
       player.playVideo();
     } catch (error) {
@@ -412,10 +462,24 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       );
       setPlaying(false);
     }
-  }, [ensurePlayer, expanded, playing, volume]);
+  }, [ensurePlayer, expanded, volume]);
+
+  const togglePlayback = useCallback(async () => {
+    if (!playing) return startPlayback();
+    playbackRequestedRef.current = false;
+    resumeAfterTabRef.current = false;
+    writePreference(MUSIC_PREFERENCE_KEY, "off");
+    playerRef.current?.pauseVideo();
+    setPlaying(false);
+    stopTimeUpdates();
+  }, [playing, startPlayback, stopTimeUpdates]);
 
   const selectTrack = useCallback(
     (index: number) => {
+      playbackRequestedRef.current = true;
+      writePreference(MUSIC_PREFERENCE_KEY, "on");
+      setAutoplayBlocked(false);
+      expandedRef.current = true;
       setExpanded(true);
       playTrack(index, true);
 
@@ -423,6 +487,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
         void waitForLayout()
           .then(() => ensurePlayer())
           .then((player) => {
+            if (!playbackRequestedRef.current || document.hidden) return;
             player.setVolume(Math.round(volume * 100));
             player.playVideo();
           })
@@ -441,7 +506,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
     const safeVolume = Math.min(1, Math.max(0, nextVolume));
 
     setVolume(safeVolume);
-    try { window.localStorage.setItem(VOLUME_KEY, String(safeVolume)); } catch { /* Storage can be blocked in private browsing. */ }
+    writePreference(VOLUME_KEY, String(safeVolume));
     playerRef.current?.setVolume(Math.round(safeVolume * 100));
   }, []);
 
@@ -473,7 +538,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (resumeAfterTabRef.current && expanded) {
+      if (resumeAfterTabRef.current && expanded && playbackRequestedRef.current) {
         resumeAfterTabRef.current = false;
         player.playVideo();
       }
@@ -499,6 +564,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
     () => ({
       activeTrackIndex,
       audioError,
+      autoplayBlocked,
       currentTime,
       duration,
       expanded,
@@ -512,11 +578,13 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       openPlayer,
       selectTrack,
       togglePlayback,
+      startPlayback,
       updateVolume,
     }),
     [
       activeTrackIndex,
       audioError,
+      autoplayBlocked,
       collapsePlayer,
       currentTime,
       duration,
@@ -528,6 +596,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
       selectTrack,
       title,
       togglePlayback,
+      startPlayback,
       trackTitles,
       updateVolume,
       volume,
@@ -540,6 +609,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
 export function AmbientAudio() {
   const {
     audioError,
+    autoplayBlocked,
     currentTime,
     duration,
     expanded,
@@ -565,7 +635,7 @@ export function AmbientAudio() {
         type="button"
         onClick={() => void togglePlayback()}
         aria-pressed={playing}
-        aria-label={playing ? `Pause ${title}` : `Play ${title}`}
+        aria-label={playing ? `Pause ${title}` : autoplayBlocked ? `Start music: ${title}` : `Play ${title}`}
         title={playing ? "Pause video" : "Open docked player and play video"}
       >
         <span className="audio-icon" aria-hidden="true">
@@ -573,7 +643,7 @@ export function AmbientAudio() {
         </span>
 
         <span className="audio-label">
-          <b title={title}>{title}</b>
+          <b title={title}>{autoplayBlocked ? "TAP TO START MUSIC" : title}</b>
           <small>
             {audioError
               ? "PLAYER UNAVAILABLE"
@@ -622,12 +692,14 @@ export function AmbientAudioPanel() {
   const {
     activeTrackIndex,
     audioError,
+    autoplayBlocked,
     expanded,
     hostId,
     title,
     trackTitles,
     collapsePlayer,
     selectTrack,
+    startPlayback,
   } = useRadio();
   const currentTrack = TRACKS[activeTrackIndex];
   const videoUrl = `https://www.youtube.com/watch?v=${currentTrack.id}`;
@@ -679,6 +751,7 @@ export function AmbientAudioPanel() {
       </div>
 
       {audioError && <p className="radio-error" role="status">{audioError}</p>}
+      {autoplayBlocked && <div className="radio-play-prompt" role="status"><span>Music is ready. Tap Play to start.</span><button type="button" onClick={() => void startPlayback()}>PLAY MUSIC ▶</button></div>}
     </section>
   );
 }

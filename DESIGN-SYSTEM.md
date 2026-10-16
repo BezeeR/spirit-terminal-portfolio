@@ -74,7 +74,7 @@ All decorative layers are fixed, contained, noninteractive, and hidden from assi
 
 ## Motion and performance
 
-- Project content appears immediately; no blocking boot sequence or title scrambling.
+- First visitors see a short broadcast log with immediate music/quiet entry controls. Returning visitors skip the intro; project content is already rendered behind it. Title scrambling remains removed.
 - Project changes use a short CSS fade and vertical settle.
 - Compact screens use static atmospheric artwork without animated fog, rain, or Canvas.
 - Background motion and audio pause while the document is hidden.
@@ -84,7 +84,7 @@ All decorative layers are fixed, contained, noninteractive, and hidden from assi
 
 ## Audio
 
-Midnight Radio contains one Nujabes YouTube set with a visible docked player, play/pause, volume, and collapse controls. YouTube loads only after the visitor opens or plays it. Playback pauses when the player collapses or the document is hidden. Browser storage is optional and failures do not prevent loading the site.
+Midnight Radio contains one Nujabes YouTube set with a visible docked player, play/pause, volume, and collapse controls. Music entry requests playback; returning visitors with music enabled get an automatic attempt. A blocked attempt shows Play instead of claiming audio is playing. Quiet entry, pause, and collapse persist; temporary hidden-tab pauses do not disable the preference. The embedded viewport stays at least 200×200px. Browser storage is optional and failures do not prevent entry.
 
 ## Accessibility
 

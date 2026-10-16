@@ -35,6 +35,7 @@ try {
     const requests = [];
     page.on('request', request => requests.push(request.url()));
     await page.goto(origin);
+    await page.getByRole('button', { name: 'ENTER QUIETLY', exact: true }).click();
     await page.getByRole('heading', { name: 'CardSlate Desktop', exact: true }).waitFor();
     assert.equal(await page.locator('.boot-screen').count(), 0);
     for (const title of projects) {
@@ -75,6 +76,7 @@ try {
   const page = currentPage = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${origin}/#afterhours`);
+  await page.getByRole('button', { name: 'ENTER QUIETLY', exact: true }).click();
   await page.getByRole('heading', { name: 'Afterhours', exact: true }).waitFor();
   await page.reload();
   await page.getByRole('heading', { name: 'Afterhours', exact: true }).waitFor();
@@ -101,6 +103,7 @@ try {
   });
   privatePage.on('pageerror', error => errors.push(error.message));
   await privatePage.goto(`${origin}/#afterhours`);
+  await privatePage.getByRole('button', { name: 'ENTER QUIETLY', exact: true }).click();
   await privatePage.getByRole('heading', { name: 'Afterhours', exact: true }).waitFor();
   assert.equal(await privatePage.getByRole('slider', { name: 'Video volume', includeHidden: true }).inputValue(), '0.34');
   await privatePage.close();

@@ -1,6 +1,12 @@
-# Portfolio v0.5 — verification, 2026-10-15
+# Portfolio verification — 2026-10-15
 
-## Checks completed
+## v0.5.1 intro and music update
+
+The first-visit broadcast intro is restored with immediate music/quiet entry; returning visitors skip it. Browser regressions cover four intro viewports (320×568, 390×844, 667×375, and 1440×900), entry control visibility, native dialog keyboard/Escape behavior, reduced motion, persisted quiet choices, returning autoplay, blocked playback and manual recovery, native player controls, cancellation while loading, storage restrictions, and retry after a failed YouTube API request. Playback is mocked to make browser-policy outcomes deterministic; real audible autoplay is still controlled by the visitor’s browser. The 112 project/viewport regressions and six HTTP checks remain in the release gate.
+
+The measurements below describe v0.5 before this requested intro restoration. They still characterize the compiled portfolio and compressed asset approach; first visitors now intentionally see the entry screen until they choose how to enter.
+
+## v0.5 checks completed
 
 - TypeScript client/server checks and Vite production build pass.
 - Six HTTP tests pass: health/version, HTML and asset caching, Brotli/gzip/identity negotiation, security headers, retired personal-data endpoints, and missing/hidden/source-file 404s.
@@ -12,7 +18,7 @@
 - Project rail arrow/Home/End controls, information tabs, direct project links, reload, and skip navigation pass.
 - Blocked localStorage does not crash the app; the radio retains its intended default volume.
 - Mocked YouTube integration verifies opt-in loading/playback, a stable player host when switching projects, and pause on collapse. Actual YouTube playback and availability depend on the browser and external service.
-- Initial navigation makes no third-party request and no duplicate `/api/projects` request.
+- In v0.5, initial navigation made no third-party request. In v0.5.1 this remains true for first visitors before entry and for quiet return visits; music-enabled return visits request YouTube. There is no duplicate `/api/projects` request.
 - Full `npm audit` reports **zero advisories** after dependency updates.
 - Reviewed screenshots at 320px, 667px landscape, 1024px, 1440px, and 1920px, including the Afterhours preview and TCG Buds Sim entry.
 

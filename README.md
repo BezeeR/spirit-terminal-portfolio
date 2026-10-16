@@ -37,7 +37,7 @@ npm run test:browser
 npm audit
 ```
 
-On Linux CI, use `npx playwright install --with-deps chromium`. To reuse an installed Chromium, set `PORTFOLIO_BROWSER_EXECUTABLE_PATH` to its executable path. Browser checks cover all eight project entries at 14 viewports from 320px to 1920px, plus keyboard navigation, deep links, contact-dialog focus, blocked browser storage, and the opt-in radio boundary. Screenshots and failure details are written to the ignored `test-results/` directory. YouTube is mocked in the playback regression; external playback still depends on the visitor’s browser and YouTube availability.
+On Linux CI, use `npx playwright install --with-deps chromium`. To reuse an installed Chromium, set `PORTFOLIO_BROWSER_EXECUTABLE_PATH` to its executable path. Browser checks cover all eight project entries at 14 viewports from 320px to 1920px, plus keyboard navigation, deep links, contact-dialog focus, blocked browser storage, and first-visit / returning-visit music behavior. Screenshots and failure details are written to the ignored `test-results/` directory. YouTube is mocked in the playback regression; external playback still depends on the visitor’s browser and YouTube availability.
 
 `npm run build` type-checks the app and server, creates Vite assets, and generates Brotli/gzip copies of JavaScript and CSS. Start the production server with:
 
@@ -50,15 +50,22 @@ npm start
 ## Architecture
 
 - **React 19 + TypeScript + Vite** for the project workspace.
+- **First-visit broadcast intro** with immediate “Enter with music” and “Enter quietly” controls. The animation never disables entry, and reduced-motion visitors get the completed log.
 - **Bundled project content**, avoiding a duplicate content API request.
 - **Express** serves the production build and health check with security headers.
 - **Brotli/gzip** delivery and immutable caching for fingerprinted assets; HTML and unversioned previews revalidate.
 - **CSS atmosphere**, static on compact screens and reduced-motion aware. Hidden tabs pause background motion and audio.
-- **YouTube IFrame API**, loaded only after the visitor opens or plays Midnight Radio. The Nujabes set remains the only track.
+- **YouTube IFrame API** for the Nujabes set. “Enter with music” requests playback after the player is ready. Returning visitors skip the intro and get an autoplay attempt unless they chose quiet entry, paused, or collapsed the player. If the browser blocks audible playback, a Play button remains available. Playback/volume controls stay accessible; no browser policy is bypassed.
 - **Direct Discord/GitHub contact** through a native modal dialog. No names, email addresses, or messages are collected or stored by this site.
 - **GitHub Actions** checks build, HTTP behavior, dependencies, accessibility, and browser regressions.
 
 The portfolio has no Supabase connection. Supabase appears in case-study stacks for the products that actually use it. The old SQLite contact inbox and `/api/projects` fetch were removed in v0.5 because they added no delivery workflow or durable storage.
+
+## Intro and music preferences
+
+The intro is shown once per browser, with session storage as a fallback. If both forms of storage are blocked, entry still works but the preference cannot survive a reload. “Enter quietly” and Escape enter without loading YouTube. A later explicit Play enables music again. Pausing through either the portfolio or the YouTube player, or collapsing the dock, remembers a quiet return. Volume remains saved separately.
+
+First visits do not load YouTube until music is chosen. Returning visits with music enabled load it automatically, so those visits may make third-party requests. Audible autoplay depends on browser permissions and prior interaction; the UI reports blocked playback accurately and offers a manual Play control. The visible YouTube player is at least 200×200px.
 
 ## Project destinations
 

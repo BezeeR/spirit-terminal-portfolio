@@ -124,11 +124,11 @@ export const projects: Project[] = [
     href: "https://github.com/BezeeR",
     features: [
       "Single-workspace project navigation",
-      "Immediate project content without a blocking boot sequence",
+      "First-visit broadcast intro with immediate music or quiet entry",
       "Keyboard, touch, and swipe project switching",
       "Responsive layouts from 320px phones to ultrawide displays",
       "Shareable project links and bundled case-study content",
-      "On-demand music and direct Discord / GitHub contact"
+      "Remembered music preferences, autoplay recovery, and direct contact"
     ],
     stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "YouTube IFrame API", "Playwright", "Railway"],
     telemetry: [

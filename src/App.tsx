@@ -2,6 +2,7 @@ import { type CSSProperties, type KeyboardEvent, useEffect, useRef, useState } f
 import { AmbientAudio, AmbientAudioPanel, AmbientAudioProvider } from "./components/AmbientAudio";
 import { BroadcastAtmosphere } from "./components/BroadcastAtmosphere";
 import { ProjectVisual } from "./components/ProjectVisual";
+import { PortfolioArrival } from "./components/WelcomeIntro";
 import { projects } from "./data/projects";
 import "./styles.css";
 
@@ -115,6 +116,7 @@ function App() {
 
   return (
     <AmbientAudioProvider>
+      <PortfolioArrival />
       <a className="skip-link" href="#project-content">Skip to project content</a>
       <div className="site-shell" style={projectStyle}>
         <BroadcastAtmosphere />
