@@ -82,6 +82,13 @@ async function playing(page) {
   assert.equal(await page.getByRole('button', { name: 'Pause Nujabes set', exact: true }).getAttribute('aria-pressed'), 'true');
 }
 
+async function radioViewport(page) {
+  // Measure the final viewport after the dock's entrance transform completes.
+  // Fractional animated coordinates can otherwise make a 200px frame read below 200.
+  await page.locator('.radio-dock').evaluate(node => Promise.all(node.getAnimations().map(animation => animation.finished.catch(() => {}))));
+  return page.locator('.radio-video-frame').boundingBox();
+}
+
 try {
   for (const [width,height] of [[320,568],[390,844],[667,375],[1440,900]]) {
     const { page, context, requests } = await createPage({ width, height });
@@ -115,7 +122,7 @@ try {
   await playing(music.page);
   assert.equal(await music.page.evaluate(() => window.__radio.volume), 34);
   assert((await music.page.evaluate(() => window.__radio.allow)).includes('autoplay'));
-  const frame = await music.page.locator('.radio-video-frame').boundingBox();
+  const frame = await radioViewport(music.page);
   assert(frame.width >= 200 && frame.height >= 200);
   await music.page.reload();
   await playing(music.page);
@@ -156,8 +163,8 @@ try {
     await mobile.page.getByText('Tap ▶ in the video below to start the Nujabes set.', { exact: true }).waitFor();
     assert.equal(await mobile.page.evaluate(() => window.__radio.playCalls), 0, 'Touch entry prepares the player without a delayed autoplay attempt');
     assert.equal(await mobile.page.locator(':focus').getAttribute('id'), 'midnight-radio-video-panel');
-    const frame = await mobile.page.locator('.radio-video-frame').boundingBox();
-    assert(frame && frame.width >= 200 && frame.height >= 200, 'Native video controls need a usable player viewport');
+    const frame = await radioViewport(mobile.page);
+    assert(frame && frame.width >= 200 && frame.height >= 200, `${width}: native video controls need a usable player viewport: ${JSON.stringify(frame)}`);
     const rail = await mobile.page.getByRole('navigation', {name:'Project navigation', exact:true}).boundingBox();
     const prompt = await mobile.page.locator('.radio-play-prompt').boundingBox();
     const nativePlay = await mobile.page.frameLocator('.radio-video-host').getByRole('button', {name:'Play video',exact:true}).boundingBox();

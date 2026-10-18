@@ -3,11 +3,30 @@ import type { Project } from "../data/projects";
 import { projectDestination, projectMedia, projectPlatform, type ProjectMedia } from "../data/showcase";
 import { ProjectVisual } from "./ProjectVisual";
 
+function Illustration({ project, item }: { project: Project; item: Extract<ProjectMedia, { kind: "illustration" }> }) {
+  const frame = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const box = frame.current, visual = content.current;
+    if (!box || !visual) return;
+    const fit = () => {
+      const style = getComputedStyle(box);
+      const width = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const height = box.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      if (width <= 0 || height <= 0 || !visual.scrollWidth || !visual.scrollHeight) return;
+      visual.style.setProperty("--illustration-scale", String(Math.min(1, width / visual.scrollWidth, height / visual.scrollHeight)));
+    };
+    const resize = new ResizeObserver(fit);
+    resize.observe(box); resize.observe(visual); fit();
+    return () => resize.disconnect();
+  }, []);
+  return <div className="showcase-illustration" ref={frame} aria-hidden="true"><div className="showcase-illustration-content" ref={content}><ProjectVisual project={project} scene={item.scene} /></div></div>;
+}
+
 function Media({ item, project, active, expanded, failed, onError }: {
   item: ProjectMedia; project: Project; active: boolean; expanded: boolean; failed: boolean; onError: () => void;
 }) {
   if (failed) return <div className="showcase-fallback"><span>PREVIEW OFFLINE</span><p>This scene could not load. Its description is below, and the other scenes are still available.</p></div>;
-  if (item.kind === "illustration") return <div className="showcase-illustration" aria-hidden="true"><ProjectVisual project={project} scene={item.scene} /></div>;
+  if (item.kind === "illustration") return <Illustration project={project} item={item} />;
   if (item.kind === "video" && active && expanded) return <video controls playsInline muted preload="none" poster={item.poster} onError={onError}><source src={item.src} /><track kind="captions" src={item.captions} srcLang="en" label="English" default /></video>;
   return <div className="showcase-image-scroll"><img src={item.kind === "image" ? item.src : item.poster} alt={expanded && item.kind === "image" ? item.alt : ""} loading="lazy" decoding="async" draggable={false} onError={onError} /></div>;
 }
