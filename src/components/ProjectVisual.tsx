@@ -1,4 +1,5 @@
 import type { Project } from "../data/projects";
+import type { ShowcaseScene } from "../data/showcase";
 import afterhoursPreview from "../assets/afterhours.webp";
 
 function DesktopVisual() {
@@ -158,7 +159,44 @@ export default broadcast(builder);`}</code></pre>
   );
 }
 
-export function ProjectVisual({ project }: { project: Project }) {
+function WorkflowVisual({ project, scene }: { project: Project; scene: ShowcaseScene }) {
+  if (project.visual === "afterhours") return <div className="showcase-sample-workflow afterhours-walkthrough">
+    <div className="sample-workflow-head"><b>AFTERHOURS</b><span>FICTIONAL CR · WALKTHROUGH</span></div>
+    <div className="sample-workflow-body">
+      <h4>{scene === "charts" ? "Read the price action" : scene === "pnl" ? "Your position at a glance" : scene === "orders" ? "One holding. Two exit conditions." : "The room shares the same news"}</h4>
+      {scene === "charts" ? <>
+        <div className="walkthrough-ranges"><span>1H</span><span>1D</span><span>1W</span><span>1M</span><span>1Y</span><span>ALL</span></div>
+        <svg className="walkthrough-candles" viewBox="0 0 480 150" aria-hidden="true"><path d="M0 30H480M0 75H480M0 120H480" fill="none" stroke="#294251"/>{[80,65,72,52,60,42,56,38,48,25,40,32].map((y,i)=><g key={i} stroke={i%3===2?'#f3a1b1':'#78d9b8'} fill={i%3===2?'#6f3440':'#254d46'}><path d={`M${20+i*39} ${y-14}V${y+39}`}/><rect x={11+i*39} y={y} width="18" height="24"/></g>)}<path d="M8 108C100 112 150 70 220 82S350 47 475 56" fill="none" stroke="#d6b47a" strokeWidth="2" strokeDasharray="5 4"/></svg>
+        <div className="sample-workflow-total">CANDLES · INDICATORS · DRAWING TOOLS</div>
+      </> : scene === "pnl" ? <>
+        <p>Example: 10 coins, average cost 10 CR, current price 12 CR.</p>
+        <div className="walkthrough-metrics"><div><small>UNREALIZED P/L</small><b>+20.00 CR</b><span>+20.00%</span></div><div><small>REMAINING COST</small><b>100.00 CR</b><span>Entry fees included</span></div></div>
+        <div className="sample-workflow-row"><span>Realized P/L</span><span>Completed sales</span></div><div className="sample-workflow-row"><span>Estimated exit P/L</span><span>After current sell costs</span></div>
+      </> : scene === "orders" ? <>
+        <div className="sample-workflow-row"><span>Take profit<small>Limit condition</small></span><b>14.00 CR</b></div><div className="sample-workflow-row"><span>Stop loss<small>Market condition</small></span><b>9.00 CR</b></div><div className="sample-workflow-total"><span>RESERVED ONCE</span><b>5 COINS</b></div><p className="walkthrough-note">Illustrative triggers. Exit prices are not guaranteed.</p>
+      </> : <>
+        {[['WORLD','Shared market context'],['SECTOR','Industry-wide developments'],['PROJECT','News about individual coins']].map(([tag,label])=><div className="sample-workflow-row" key={tag}><span className="walkthrough-news-tag">{tag}</span><b>{label}</b></div>)}<div className="sample-workflow-total">PUBLIC UPDATES · UNPREDICTABLE NEXT MOVE</div>
+      </>}
+    </div>
+  </div>;
+  const tcg = project.visual === "pack-night";
+  return <div className="showcase-sample-workflow">
+    <div className="sample-workflow-head"><b>{tcg ? "TCG BUDS" : "CARDSLATE"}</b><span>{tcg ? "GAMEPLAY ONLY" : "WORKFLOW OVERVIEW"}</span></div>
+    <div className="sample-workflow-body">
+      <h4>{scene === "packs" ? "Pack Night" : scene === "decks" ? "Choose your practice deck" : scene === "insights" ? "Portfolio insights" : "Convention checkout"}</h4>
+      <p>{scene === "packs" ? "Open together. Build the collection. Come back for the next battle." : scene === "decks" ? "Curated starting points for Practice CPU and the tabletop." : scene === "insights" ? "Keep holdings, cost, and market context in one workspace." : "Bring the booth inventory and the sale together."}</p>
+      {(scene === "decks" || scene === "packs") ? <div className="sample-decks">{[1,2,3].map(n => <div className="sample-deck" key={n}><span>{scene === "packs" ? "VIRTUAL PACK" : "SIM DECK"} 0{n}</span><small>{scene === "packs" ? "PACK NIGHT" : "PRACTICE CPU"}</small></div>)}</div> : scene === "insights" ? <>
+        <div className="sample-workflow-row"><span>Collection value<small>Illustrative inventory</small></span><b>$24,862.40</b></div>
+        <svg className="sample-workflow-chart" viewBox="0 0 500 90" preserveAspectRatio="none"><path d="M0 80H500M0 45H500M0 10H500" fill="none" stroke="#294251"/><path d="M0 74L40 68L80 72L120 50L160 57L200 38L240 45L280 31L320 39L360 17L400 26L450 12L500 19" fill="none" stroke="#70d2b4" strokeWidth="3"/></svg>
+        <div className="sample-workflow-row"><span>Purchase cost</span><b>$21,980.00</b></div>
+      </> : <>{["Card 01 · Near Mint", "Card 02 · English printing", "Card 03 · Binder inventory"].map((label,i) => <div className="sample-workflow-row" key={label}><span>{label}<small>From convention inventory</small></span><b>${[84,47,72][i]}.00</b></div>)}</>}
+      <div className="sample-workflow-total"><span>{scene === "packs" ? "PACKS · COLLECTION · BATTLES" : scene === "decks" ? "CASUAL · COMPETITIVE · ELITE" : scene === "insights" ? "LOCAL-FIRST · OPTIONAL CLOUD" : "3 ITEMS · SALE TOTAL"}</span>{scene === "checkout" && <b>$203.00</b>}</div>
+    </div>
+  </div>;
+}
+
+export function ProjectVisual({ project, scene = "overview" }: { project: Project; scene?: ShowcaseScene }) {
+  if (scene !== "overview") return <WorkflowVisual project={project} scene={scene} />;
   if (project.visual === "desktop") return <DesktopVisual />;
   if (project.visual === "website") return <WebsiteVisual />;
   if (project.visual === "mobile") return <MobileVisual />;

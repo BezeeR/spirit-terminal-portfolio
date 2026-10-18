@@ -33,7 +33,7 @@ test("health returns a versioned, uncached deployment check", async () => {
   const response = await fetch(`${origin}/api/health`);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.deepEqual(await response.json(), { ok: true, service: "portfolio", version: "0.5.2" });
+  assert.deepEqual(await response.json(), { ok: true, service: "portfolio", version: "0.6.0" });
 });
 
 test("HTML revalidates while only fingerprinted assets get immutable caching", async () => {

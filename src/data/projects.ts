@@ -120,14 +120,14 @@ export const projects: Project[] = [
     summary:
       "A focused portfolio workspace for full-stack products and multiplayer games. Visitors can switch projects instantly, share a direct project link, explore real previews, and connect through Discord or GitHub inside a late-night broadcast interface.",
     role: "Creative direction · Interaction design · Engineering",
-    status: "v0.5 / live portfolio",
+    status: "v0.6 / live portfolio",
     href: "https://github.com/BezeeR",
     features: [
       "Single-workspace project navigation",
       "First-visit broadcast intro with immediate music or quiet entry",
       "Keyboard, touch, and swipe project switching",
       "Responsive layouts from 320px phones to ultrawide displays",
-      "Shareable project links and bundled case-study content",
+      "Swipeable, captioned project galleries with a larger inspection viewer",
       "Remembered music preferences, autoplay recovery, and direct contact"
     ],
     stack: ["React", "TypeScript", "Vite", "Node.js", "Express", "YouTube IFrame API", "Playwright", "Railway"],
@@ -206,8 +206,6 @@ export const projects: Project[] = [
       "A One Piece TCG fan simulator that brings deck practice and social Pack Night into one Discord Activity. Play cards directly on a virtual tabletop, train against Practice CPU, build decks, open virtual packs, and keep a cloud-synced collection with friends. All Berries and cards are for gameplay only.",
     role: "Product design · Full-stack development · Game systems · Discord integration",
     status: "Live test build / simulator in development",
-    href: projectUrl(import.meta.env.VITE_PACK_NIGHT_URL, "https://grand-lineserver-production.up.railway.app/"),
-    linkLabel: "OPEN TCG BUDS SIM",
     features: [
       "Interactive OPTCG tabletop with direct card play, DON!!, attacks, and battle responses",
       "Practice CPU with Casual, Competitive, and Elite profiles and five curated Sim Decks",
@@ -219,7 +217,7 @@ export const projects: Project[] = [
     stack: ["React 19", "TypeScript", "Vite", "Discord Embedded App SDK", "Node.js", "Express 5", "Supabase", "PostgreSQL", "OPTCG API", "Playwright", "Railway"],
     telemetry: [
       { label: "MODE", value: "CPU + SOCIAL" },
-      { label: "SURFACE", value: "DISCORD + WEB" },
+      { label: "SURFACE", value: "DISCORD ACTIVITY" },
       { label: "STATE", value: "LIVE TEST" }
     ],
     visual: "pack-night"
@@ -238,9 +236,9 @@ export const projects: Project[] = [
     features: [
       "Server-authoritative shared markets with fees, price impact, and protected fills",
       "Market, limit, stop, and linked take-profit / stop-loss orders with reserved funds",
-      "Portfolio allocation, concentration checks, and estimated exit value",
+      "Portfolio allocation, unrealized / realized P/L, and estimated exit value",
       "Private watchlists, trade history, and persistent account progression",
-      "Fictional coin companies, market sizes, and shared-network events in development",
+      "Fictional coin companies, different market sizes, and random world / sector events",
       "Cosmetic progression, accessible controls, and responsive desktop / mobile layouts"
     ],
     stack: ["React 19", "TypeScript", "Vite", "Node.js", "Express 5", "WebSocket", "Supabase", "PostgreSQL", "Discord Embedded App SDK", "Playwright"],
