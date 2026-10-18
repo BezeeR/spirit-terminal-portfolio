@@ -93,13 +93,13 @@ try {
   await page.waitForFunction(()=>Number(document.querySelector('.visual-column .showcase-track').scrollLeft)>50);
   await page.waitForTimeout(600);
   assert.equal(await page.evaluate(()=>location.hash),'#afterhours','a real horizontal swipe stays inside the selected project');
-  await inline.getByRole('button',{name:/^Scene 3:/}).click();
+  await inline.getByRole('button',{name:/^03 /}).click();
   await scene(page,inline,3);
   await inline.getByRole('button',{name:/^Expand /}).click();
   const dialog=page.getByRole('dialog',{name:'Afterhours',exact:true});
   const gallery=dialog.getByRole('region',{name:'Afterhours project gallery',exact:true});
   await scene(page,gallery,3);
-  await gallery.getByRole('button',{name:/^Scene 1:/}).click();
+  await gallery.getByRole('button',{name:/^01 /}).click();
   await scene(page,gallery,1);
   await gallery.getByRole('button',{name:'INSPECT IMAGE',exact:true}).click();
   assert.equal(await gallery.getByRole('button',{name:'FIT IMAGE',exact:true}).getAttribute('aria-pressed'),'true');

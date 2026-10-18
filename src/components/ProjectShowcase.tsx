@@ -86,7 +86,7 @@ export function ProjectShowcase({ project, initialIndex = 0, expanded = false, o
       </div>
       <div className="showcase-caption" aria-live="polite" aria-atomic="true"><h3>{item.title}</h3><p>{item.caption}</p></div>
       {items.length > 1 && <div className="showcase-filmstrip" ref={filmstrip} role="group" aria-label="Choose a project scene">
-        {items.map((media, i) => <button type="button" key={media.id} aria-label={`Scene ${i + 1}: ${media.title}`} aria-current={i === index ? "true" : undefined} onClick={() => select(i)}>
+        {items.map((media, i) => <button type="button" key={media.id} title={`Scene ${i + 1}: ${media.title}`} aria-current={i === index ? "true" : undefined} onClick={() => select(i)}>
           {media.kind !== "illustration" && <img src={media.kind === "image" ? media.src : media.poster} alt="" loading="lazy" decoding="async" />}
           <span>{number(i)}</span><b>{media.title}</b>{media.kind === "video" && <small>CLIP</small>}
         </button>)}
