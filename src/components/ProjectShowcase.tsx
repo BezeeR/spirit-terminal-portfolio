@@ -19,7 +19,7 @@ function Illustration({ project, item }: { project: Project; item: Extract<Proje
     resize.observe(box); resize.observe(visual); fit();
     return () => resize.disconnect();
   }, []);
-  return <div className="showcase-illustration" ref={frame} aria-hidden="true"><div className="showcase-illustration-content" ref={content}><ProjectVisual project={project} scene={item.scene} /></div></div>;
+  return <div className={`showcase-illustration${project.visual === "website" ? " showcase-illustration-website" : ""}`} ref={frame} aria-hidden="true"><div className="showcase-illustration-content" ref={content}><ProjectVisual project={project} scene={item.scene} /></div></div>;
 }
 
 function Media({ item, project, active, expanded, failed, onError }: {
@@ -70,7 +70,7 @@ export function ProjectShowcase({ project, initialIndex = 0, expanded = false, o
   useEffect(() => () => window.clearTimeout(settle.current), []);
   if (!item) return null;
   return (
-    <section className={`project-showcase${expanded ? " expanded-showcase" : ""}${inspect ? " is-inspecting" : ""}`} aria-label={`${project.title} project gallery`} aria-roledescription="carousel"
+    <section className={`project-showcase${expanded ? " expanded-showcase" : ""}${inspect ? " is-inspecting" : ""}${items.length === 1 ? " single-scene" : ""}`} aria-label={`${project.title} project gallery`} aria-roledescription="carousel"
       onTouchStart={event => event.stopPropagation()}
       onTouchEnd={event => event.stopPropagation()}
       onKeyDown={event => {
@@ -79,6 +79,7 @@ export function ProjectShowcase({ project, initialIndex = 0, expanded = false, o
         if (next === null) return;
         event.preventDefault(); event.stopPropagation(); select(next);
       }}>
+      <span className="showcase-media-label">{item.label}</span>
       <div className="showcase-screen">
         <div className="showcase-track" ref={track} tabIndex={0} role="group" aria-label="Preview scenes. Swipe or use left and right arrow keys."
           onScroll={() => {
@@ -94,17 +95,16 @@ export function ProjectShowcase({ project, initialIndex = 0, expanded = false, o
             <Media item={media} project={project} active={i === index} expanded={expanded} failed={failed.has(media.id)} onError={() => setFailed(previous => new Set([...previous, media.id]))} />
           </div>)}
         </div>
-        {!expanded && <button className="showcase-expand" type="button" aria-label={`Expand ${item.title} preview`} onClick={() => onExpand?.(index)}>EXPAND <span aria-hidden="true">↗</span></button>}
-        <span className="showcase-media-label">{item.label}</span>
       </div>
-      <div className="showcase-navigation">
-        <div className="showcase-scene-number"><span>SCENE</span><b>{number(index)}<small> / {String(items.length).padStart(2, "0")}</small></b></div>
+      {(!expanded || items.length > 1 || item.kind === "image") && <div className="showcase-navigation">
+        {items.length > 1 && <div className="showcase-scene-number"><span>SCENE</span><b>{number(index)}<small> / {String(items.length).padStart(2, "0")}</small></b></div>}
         <div className="showcase-arrow-controls">
+          {!expanded && <button className="showcase-expand" type="button" aria-label={`Expand ${item.title} preview`} onClick={() => onExpand?.(index)}>EXPAND <span aria-hidden="true">↗</span></button>}
           {expanded && item.kind === "image" && <button type="button" className="showcase-inspect" aria-pressed={inspect} onClick={() => setInspect(value => !value)}>{inspect ? "FIT IMAGE" : "INSPECT IMAGE"}</button>}
-          <button type="button" aria-label="Previous scene" disabled={index === 0} onClick={() => select(index - 1)}>←</button>
-          <button type="button" aria-label="Next scene" disabled={index === items.length - 1} onClick={() => select(index + 1)}>→</button>
+          {items.length > 1 && <><button type="button" aria-label="Previous scene" disabled={index === 0} onClick={() => select(index - 1)}>←</button>
+          <button type="button" aria-label="Next scene" disabled={index === items.length - 1} onClick={() => select(index + 1)}>→</button></>}
         </div>
-      </div>
+      </div>}
       <div className="showcase-caption" aria-live="polite" aria-atomic="true"><h3>{item.title}</h3><p>{item.caption}</p></div>
       {items.length > 1 && <div className="showcase-filmstrip" ref={filmstrip} role="group" aria-label="Choose a project scene">
         {items.map((media, i) => <button type="button" key={media.id} title={`Scene ${i + 1}: ${media.title}`} aria-current={i === index ? "true" : undefined} onClick={() => select(i)}>

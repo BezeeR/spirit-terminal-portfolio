@@ -15,6 +15,7 @@ const browser = await chromium.launch({ executablePath: process.env.PORTFOLIO_BR
 const errors = [], results = [];
 let currentPage;
 const layouts = [[320,568],[390,844],[667,375],[1024,768],[1440,900],[1920,1080],[2580,1440]];
+const galleryProjects = [['Afterhours','afterhours',5],['TCG Buds Sim','tcg-buds-pack-night',3],['CardSlate Desktop','cardslate-desktop',3],['CardSlate Website','cardslate-web',1]];
 async function enter(page, hash = 'afterhours') {
   await page.goto(`${origin}/#${hash}`);
   const quiet = page.getByRole('button', { name: 'ENTER QUIETLY', exact: true });
@@ -28,7 +29,8 @@ async function scene(page, gallery, n) {
   await page.waitForFunction(({ selector, n }) => {
     const root = document.querySelector(selector);
     const track = root?.querySelector('.showcase-track');
-    return root?.querySelector('.showcase-filmstrip button[aria-current]')?.textContent?.includes(String(n).padStart(2,'0')) && Math.abs(track.scrollLeft - (n - 1) * track.clientWidth) < 2;
+    const selected = root?.querySelector('.showcase-filmstrip button[aria-current]');
+    return (selected ? selected.textContent.includes(String(n).padStart(2,'0')) : n === 1 && track?.children.length === 1) && Math.abs(track.scrollLeft - (n - 1) * track.clientWidth) < 2;
   }, { selector: await gallery.evaluate(el => el.closest('dialog') ? '.project-viewer .project-showcase' : '.visual-column .project-showcase'), n });
 }
 async function overflow(page, label) {
@@ -37,6 +39,21 @@ async function overflow(page, label) {
     const r=el.getBoundingClientRect();return r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1;
   }).map(el => el.textContent));
   assert.deepEqual(clipping, [], `${label}: clipped controls`);
+}
+async function presentation(gallery, label) {
+  const conflicts = await gallery.evaluate(root => {
+    const media=root.querySelector('.showcase-screen').getBoundingClientRect();
+    const intersects=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>1 && Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1;
+    const found=[...root.querySelectorAll('.showcase-media-label,.showcase-expand')].filter(el=>intersects(media,el.getBoundingClientRect())).map(el=>el.className);
+    const copy=root.querySelector('.site-copy'), product=root.querySelector('.site-product-preview');
+    if(copy&&product) {
+      const a=copy.getBoundingClientRect(),b=product.getBoundingClientRect();
+      if(intersects(a,b))found.push('website copy overlaps product preview');
+      for(const box of [a,b])if(box.left<media.left-1||box.right>media.right+1||box.top<media.top-1||box.bottom>media.bottom+1)found.push('website artwork is clipped');
+    }
+    return found;
+  });
+  assert.deepEqual(conflicts,[],`${label}: preview text and controls must stay clear of artwork`);
 }
 try {
   for (const [width,height] of layouts) {
@@ -47,8 +64,11 @@ try {
     page.on('request', request => { if(!request.url().startsWith(origin)) external.push(request.url()); });
     await enter(page);
     await page.evaluate(() => document.documentElement.style.fontSize = '20px');
-    for (const title of ['Afterhours','TCG Buds Sim','CardSlate Desktop']) {
+    for (const [title,id,count] of galleryProjects) {
       await page.getByRole('button',{name:`Open ${title}`,exact:true}).click();
+      const inline=page.locator('.visual-column .project-showcase');
+      await presentation(inline,`${title}/${width}/inline`);
+      if(id==='cardslate-web'&&[320,390,1440].includes(width))await page.locator('.visual-frame').screenshot({path:`${out}/cardslate-web-${width}-inline.png`});
       const opener = page.getByRole('button',{name:'VIEW PROJECT',exact:false});
       await opener.click();
       const dialog = page.getByRole('dialog',{name:title,exact:true});
@@ -57,11 +77,12 @@ try {
       const gallery=dialog.getByRole('region',{name:`${title} project gallery`,exact:true});
       await gallery.locator('.showcase-track').focus();
       await page.keyboard.press('ArrowRight');
-      await scene(page,gallery,2);
-      assert.equal(await page.evaluate(()=>location.hash),`#${title==='Afterhours'?'afterhours':title==='TCG Buds Sim'?'tcg-buds-pack-night':'cardslate-desktop'}`,'gallery keys never change the project');
+      await scene(page,gallery,Math.min(2,count));
+      assert.equal(await page.evaluate(()=>location.hash),`#${id}`,'gallery keys never change the project');
       await page.keyboard.press('End');
-      await scene(page,gallery,title==='Afterhours'?5:3);
-      assert.equal(await gallery.getByRole('button',{name:'Next scene',exact:true}).isDisabled(),true);
+      await scene(page,gallery,count);
+      if(count>1)assert.equal(await gallery.getByRole('button',{name:'Next scene',exact:true}).isDisabled(),true);
+      else assert.equal(await gallery.getByRole('button',{name:/^(Next|Previous) scene$/}).count(),0,'single previews do not display unusable arrows');
       await page.keyboard.press('Home');
       await scene(page,gallery,1);
       if (title === 'Afterhours' && width === 390) {
@@ -78,18 +99,19 @@ try {
         await scene(page,gallery,1);
       }
       await overflow(page,`${title}/${width}`);
+      await presentation(gallery,`${title}/${width}/expanded`);
       const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
       assert.deepEqual(audit.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${title}/${width}: accessibility`);
       assert.equal(await page.locator('iframe,video').count(),0,'screenshots do not load video or third-party players');
       if ([390,1440].includes(width) && title !== 'CardSlate Desktop') {
-        await dialog.screenshot({path:`${out}/${title==='Afterhours'?'afterhours':'tcg-buds'}-${width}.png`});
+        await dialog.screenshot({path:`${out}/${title==='Afterhours'?'afterhours':id==='cardslate-web'?'cardslate-web':'tcg-buds'}-${width}.png`});
       }
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('.project-viewer').count(),0);
       assert.equal(await opener.evaluate(el=>el===document.activeElement),true,'closing restores the invoking button');
     }
     assert.deepEqual(external,[],'viewing the project makes no third-party request');
-    results.push({width,height,textScale:'125%',projects:3,axeViolations:0});
+    results.push({width,height,textScale:'125%',projects:galleryProjects.length,axeViolations:0});
     await context.close();
   }
 
@@ -159,7 +181,7 @@ try {
   await offline.close();
   assert.deepEqual(errors,[]);
   await writeFile(`${out}/checks.json`,JSON.stringify({results,touchSwipe:'passed',focusReturn:'passed',keyboardIsolation:'passed',imageFailure:'passed',noExternalMedia:'passed',errors},null,2));
-  console.log('PASS project gallery: 21 larger-text project/layout combinations, WCAG checks, native touch swipe, smooth navigation, thumbnails, inspect mode, modal focus/Escape, project isolation, and missing-image recovery.');
+  console.log(`PASS project gallery: ${layouts.length*galleryProjects.length} larger-text project/layout combinations, unobscured preview artwork, WCAG checks, native touch swipe, smooth navigation, thumbnails, inspect mode, modal focus/Escape, project isolation, and missing-image recovery.`);
 } catch(error) {
   if(currentPage&&!currentPage.isClosed()) {
     await currentPage.screenshot({path:`${out}/failure.png`,fullPage:true}).catch(()=>{});

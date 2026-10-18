@@ -33,8 +33,10 @@ function WebsiteVisual() {
       <div className="browser-bar"><span /><span /><span /><div>cardslate.app</div></div>
       <div className="website-hero">
         <div className="site-nav"><img src="./assets/cardslate-icon.svg" alt="" /><b>CardSlate</b><span>Features&nbsp;&nbsp; Companion&nbsp;&nbsp; Download</span></div>
-        <div className="site-copy"><small>TCG OPERATIONS, REBUILT</small><p className="mock-title">Run the collection.<br />Own the event.</p><p>Inventory, pricing, and convention sales in one focused system.</p><span className="mock-button">Download private beta</span></div>
-        <DesktopVisual />
+        <div className="website-content">
+          <div className="site-copy"><small>TCG OPERATIONS, REBUILT</small><p className="mock-title">Run the collection.<br />Own the event.</p><p>Inventory, pricing, and convention sales in one focused system.</p><span className="mock-button">Download private beta</span></div>
+          <div className="site-product-preview"><DesktopVisual /></div>
+        </div>
       </div>
     </div>
   );
