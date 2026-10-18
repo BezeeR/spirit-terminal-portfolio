@@ -18,7 +18,7 @@ export function createApp(staticDir: string) {
   });
   app.get("/api/health", (_request, response) => {
     response.setHeader("Cache-Control", "no-store");
-    response.json({ ok: true, service: "portfolio", version: "0.5.2" });
+    response.json({ ok: true, service: "portfolio", version: "0.6.0" });
   });
   app.use("/api", (_request, response) => {
     response.setHeader("Cache-Control", "no-store");

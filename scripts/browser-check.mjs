@@ -92,7 +92,8 @@ try {
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.getByRole('tab', { name: 'LOADOUT', exact: true }).getAttribute('aria-selected'), 'true');
   await page.getByRole('button', { name: 'Open TCG Buds Sim', exact: true }).click();
-  assert.equal(await page.locator('.project-actions a').getAttribute('href'), 'https://grand-lineserver-production.up.railway.app/');
+  assert.equal(await page.locator('.project-actions a').count(), 0, 'Discord-only project stays inside its showcase');
+  await page.getByRole('button', { name: 'VIEW PROJECT', exact: false }).waitFor();
   await page.screenshot({ path: `${out}/tcg-buds-sim-1440.png`, fullPage: true });
 
   // Storage restrictions must not blank the portfolio or silently mute the radio.
