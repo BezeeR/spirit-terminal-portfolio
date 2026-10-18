@@ -181,6 +181,9 @@ try {
     assert.equal(await mobile.page.evaluate(() => window.__radio.nativePlayCalls), 1);
     await mobile.page.reload();
     await mobile.page.waitForFunction(() => window.__radio?.ready);
+    // The ready player can still be entering after a returning visit. Settle
+    // its viewport before scrolling to and tapping the native video control.
+    await radioViewport(mobile.page);
     assert.equal(await mobile.page.locator('.boot-screen').count(), 0, 'Touch returns skip the remembered boot screen');
     assert.equal(await mobile.page.evaluate(() => window.__radio.playCalls), 0, 'Touch returns keep native Play instead of attempting autoplay');
     await mobile.page.frameLocator('.radio-video-host').getByRole('button', { name: 'Play video', exact: true }).tap();
