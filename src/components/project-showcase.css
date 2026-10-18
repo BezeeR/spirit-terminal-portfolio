@@ -12,7 +12,12 @@
 .showcase-illustration .device, .showcase-illustration .code-window { transform:none; width:100%; max-width:100%; }
 .showcase-illustration .mobile-scene { width:100%; }
 .showcase-illustration .desktop-device { min-width:0; }
-.project-showcase .showcase-illustration :is(.browser-bar div,.window-bar b,.desktop-sidebar div:not(.active),.desktop-content header small,.mini-stats small,.mock-table small,.phone-head small,.phone-stats small,.phone-row small,.phone-search,.site-nav span,.site-copy p,.code-head span,.code-status span,.pack-night-actions span,.preview-note) { color:#bdc7d3; }
+.project-showcase .showcase-illustration :is(.browser-bar div,.window-bar b,.desktop-sidebar div:not(.active),.desktop-content header small,.mini-stats small,.mock-table small,.phone-head small,.phone-stats small,.phone-row small,.phone-search,.site-nav span,.site-copy p,.code-head span,.code-status span) { color:#bdc7d3; }
+.showcase-illustration .pack-night-preview { background:radial-gradient(circle at 76% 12%,#19434c 0,transparent 60%),#12232e; color:#d3e6e8; }
+.showcase-illustration .pack-night-head b { color:#8addda; }
+.showcase-illustration .pack-night-head i { color:#9bdfb9; }
+.showcase-illustration .pack-night-actions span { background:#193d46; color:#bee8e8; border:1px solid #3b6068; }
+.showcase-illustration .preview-note { color:#becbd2; }
 .showcase-expand { position:absolute; right:10px; bottom:10px; z-index:2; min-height:44px; padding:0 13px; border:1px solid #587288; background:rgba(15,19,25,.94); color:#e0e0e0; font:700 .6rem var(--font-mono); letter-spacing:.08em; cursor:pointer; }
 .showcase-expand span { margin-left:10px; color:#5dc7ff; font-size:1rem; }
 .showcase-media-label { position:absolute; top:0; left:0; max-width:100%; padding:7px 10px; background:rgba(14,16,21,.96); color:#b3bdc8; font:600 .48rem var(--font-mono); line-height:1.5; letter-spacing:.07em; pointer-events:none; }
