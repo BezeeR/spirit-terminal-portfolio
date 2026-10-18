@@ -18,7 +18,10 @@ const layouts = [[320,568],[390,844],[667,375],[1024,768],[1440,900],[1920,1080]
 async function enter(page, hash = 'afterhours') {
   await page.goto(`${origin}/#${hash}`);
   const quiet = page.getByRole('button', { name: 'ENTER QUIETLY', exact: true });
-  if (await quiet.isVisible()) await quiet.click();
+  // Every fixture uses a fresh context. Wait for its first-visit dialog instead
+  // of racing the effect that opens it on a motion-enabled mobile page.
+  await quiet.click();
+  await page.locator('.boot-screen').waitFor({state:'detached'});
   await page.getByRole('heading', { name: hash === 'afterhours' ? 'Afterhours' : 'TCG Buds Sim', exact: true }).waitFor();
 }
 async function scene(page, gallery, n) {
@@ -95,7 +98,7 @@ try {
   const geometry = await track.evaluate(el => {
     const rect = el.getBoundingClientRect();
     const hit=document.elementFromPoint(rect.x + el.clientWidth * .85, rect.y + el.clientHeight * .5);
-    return { bounds: rect.toJSON(), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, touchAction: getComputedStyle(el).touchAction, hit: hit?.tagName, inGallery: !!hit?.closest('.project-showcase'), scrollY };
+    return { bounds: rect.toJSON(), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, touchAction: getComputedStyle(el).touchAction, hit: hit?.tagName, hitClass:hit?.className, inGallery: !!hit?.closest('.project-showcase'), innerWidth, viewport:visualViewport?.width, scale:visualViewport?.scale, dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.className), scrollY };
   });
   console.log('Touch gallery geometry', JSON.stringify(geometry));
   assert.equal(geometry.inGallery,true,'native touch starts on the gallery after page positioning settles');
