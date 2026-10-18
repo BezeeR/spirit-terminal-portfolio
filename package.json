@@ -12,7 +12,7 @@
     "server": "node --import tsx server/index.ts",
     "start": "node --import tsx server/index.ts",
     "test": "node --import tsx --test tests/server.test.ts",
-    "test:browser": "node --import tsx scripts/browser-check.mjs && node --import tsx scripts/intro-check.mjs && node --import tsx scripts/showcase-check.mjs",
+    "test:browser": "node --import tsx scripts/showcase-check.mjs && node --import tsx scripts/browser-check.mjs && node --import tsx scripts/intro-check.mjs",
     "postbuild": "node scripts/compress-assets.mjs"
   },
   "dependencies": {
