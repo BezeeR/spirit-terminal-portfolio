@@ -8,7 +8,7 @@ The viewer contains its focus, closes with Escape, restores the invoking control
 
 | Project | Included media | Representation |
 | --- | --- | --- |
-| Afterhours | Trading capture plus chart, P/L, linked-exit, and market-news walkthroughs | The trading capture was already published in this portfolio. The other scenes are clearly labeled, newly authored illustrations with example data; they are not screenshots of the private alpha. Alpha representation does not imply a public Discord launch. |
+| Afterhours | Trading desk, Advanced chart, P/L, limit-order editor, and market wire | Five real alpha captures using fictional CR. The trading image was already public; the owner explicitly approved the four additional captures for the public portfolio repository and website on October 18, 2026. Alpha representation does not imply a public Discord launch. |
 | TCG Buds Sim / Pack Night | Tabletop, practice decks, and virtual packs | Clearly labeled interface illustrations. These are visual walkthroughs of documented features, not captured live gameplay. |
 | CardSlate Desktop / Companion / website | Inventory, checkout, insights, desktop/mobile product presentation | Clearly labeled interface illustrations with sample data. They do not represent the current installed product's exact UI. |
 | TCG Buds Storefront / StratBoard | Existing portfolio images | Existing authorized-demo / interface captures, retained with descriptive captions. |
@@ -16,7 +16,7 @@ The viewer contains its focus, closes with Escape, restores the invoking control
 
 Existing screenshots are retained without altering their content. Bundled images receive Vite fingerprints and immutable delivery. Only the active project's gallery is mounted; images load lazily. No new image host, external iframe, analytics, account, or database connection is introduced.
 
-Four additional private Afterhours QA captures were prepared for review but excluded from this release because automatic approval review blocked publishing those images to the public portfolio repository without explicit image-and-destination approval. They are not referenced or bundled in the published site.
+The four approved Afterhours additions are `afterhours-advanced.webp`, `afterhours-portfolio.webp`, `afterhours-orders.webp`, and `afterhours-news.webp`. They are published unchanged from the exact files reviewed and approved by the owner. Captions describe the captured screens; in particular, the orders capture shows a limit-order editor rather than a linked-exit editor.
 
 ## Add or replace a scene
 

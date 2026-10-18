@@ -64,6 +64,19 @@ try {
       assert.equal(await gallery.getByRole('button',{name:'Next scene',exact:true}).isDisabled(),true);
       await page.keyboard.press('Home');
       await scene(page,gallery,1);
+      if (title === 'Afterhours' && width === 390) {
+        for (let n=1;n<=5;n++) {
+          await gallery.locator('.showcase-filmstrip button').nth(n-1).click();
+          await scene(page,gallery,n);
+          const photo=gallery.locator('.showcase-slide[aria-hidden="false"] img');
+          await photo.evaluate(image=>image.decode());
+          assert(await photo.getAttribute('alt'),'every alpha capture has a description');
+          assert.equal(await gallery.locator('.showcase-media-label').innerText(),'ALPHA CAPTURE · FICTIONAL CR');
+          if (n>1) await dialog.screenshot({path:`${out}/afterhours-scene-${n}-390.png`});
+        }
+        await gallery.locator('.showcase-filmstrip button').first().click();
+        await scene(page,gallery,1);
+      }
       await overflow(page,`${title}/${width}`);
       const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
       assert.deepEqual(audit.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${title}/${width}: accessibility`);
@@ -123,7 +136,7 @@ try {
   assert.equal(await gallery.getByRole('button',{name:'FIT IMAGE',exact:true}).getAttribute('aria-pressed'),'true');
   await gallery.getByRole('button',{name:'Next scene',exact:true}).click();
   await scene(page,gallery,2);
-  assert.equal(await gallery.getByRole('button',{name:'INSPECT IMAGE',exact:true}).count(),0);
+  assert.equal(await gallery.getByRole('button',{name:'INSPECT IMAGE',exact:true}).getAttribute('aria-pressed'),'false','changing to another screenshot resets inspection');
   for(let n=0;n<12;n++) {
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(()=>document.activeElement===document.body||document.querySelector('.project-viewer').contains(document.activeElement)),true,'modal focus stays contained');
@@ -133,14 +146,16 @@ try {
 
   const offline=await browser.newContext({viewport:{width:1024,height:768},reducedMotion:'reduce'});
   const fallback=currentPage=await offline.newPage();
-  await fallback.route('**/assets/afterhours-*.webp',route=>route.fulfill({status:404,contentType:'text/plain',body:'Unavailable fixture'}));
+  // Only the original trading capture fails; the next approved photo stays available.
+  await fallback.route(/\/assets\/afterhours-(?!advanced-|portfolio-|orders-|news-)[A-Za-z0-9_-]+\.webp$/,route=>route.fulfill({status:404,contentType:'text/plain',body:'Unavailable fixture'}));
   await enter(fallback);
   const offlineGallery=fallback.locator('.visual-column .project-showcase');
   await scene(fallback,offlineGallery,1);
   await offlineGallery.getByText('PREVIEW OFFLINE',{exact:true}).waitFor();
   await offlineGallery.getByRole('button',{name:'Next scene',exact:true}).click();
   await scene(fallback,offlineGallery,2);
-  assert.equal(await offlineGallery.locator('.showcase-slide[aria-hidden="false"] .showcase-illustration').count(),1);
+  await offlineGallery.locator('.showcase-slide[aria-hidden="false"] img').evaluate(image=>image.decode());
+  assert.equal(await offlineGallery.locator('.showcase-slide[aria-hidden="false"]').getByText('PREVIEW OFFLINE',{exact:true}).count(),0,'another capture still loads after the first image fails');
   await offline.close();
   assert.deepEqual(errors,[]);
   await writeFile(`${out}/checks.json`,JSON.stringify({results,touchSwipe:'passed',focusReturn:'passed',keyboardIsolation:'passed',imageFailure:'passed',noExternalMedia:'passed',errors},null,2));

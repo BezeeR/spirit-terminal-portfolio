@@ -1,4 +1,8 @@
 import trading from "../assets/afterhours.webp";
+import advanced from "../assets/afterhours-advanced.webp";
+import portfolio from "../assets/afterhours-portfolio.webp";
+import orders from "../assets/afterhours-orders.webp";
+import news from "../assets/afterhours-news.webp";
 import type { Project } from "./projects";
 
 export type ShowcaseScene = "overview" | "checkout" | "insights" | "packs" | "decks" | "charts" | "pnl" | "orders" | "news";
@@ -37,10 +41,10 @@ const media: Record<string, readonly ProjectMedia[]> = {
   ],
   afterhours: [
     image("trading", "Take the night shift", "Trade fictional coins against shared liquidity. Review fees, price impact, and protected fills before committing CR.", trading, "Afterhours alpha trading desk with fictional coin markets, a price chart, and a trade ticket", "ALPHA CAPTURE · FICTIONAL CR"),
-    illustration("advanced", "Read the market your way", "An illustrated introduction to recorded candles, technical indicators, chart tools, and private position context.", "charts"),
-    illustration("portfolio", "Know where you stand", "This example explains unrealized P/L against average cost, with realized results and exit estimates kept separate.", "pnl"),
-    illustration("orders", "Keep orders under control", "A linked-exit example: take-profit and stop-loss conditions share one reservation. Actual fills still depend on liquidity.", "orders"),
-    illustration("news", "A market with a shared story", "An illustrated overview of fictional world, sector, and project updates. Headlines never promise the next move.", "news")
+    image("advanced", "Read the market your way", "Explore recorded candles, turnover, news markers, technical studies, and your average cost on the same chart. Chart tools place no orders.", advanced, "Afterhours Advanced chart with recorded candles, SMA, turnover, average cost, order triggers, news markers, and Fibonacci tools", "ALPHA CAPTURE · FICTIONAL CR"),
+    image("portfolio", "Know where you stand", "See unrealized P/L against the remaining cost of open holdings, with realized results and estimated exit P/L shown separately.", portfolio, "Afterhours trading performance showing unrealized P/L, remaining cost, realized P/L, and estimated exit P/L in fictional CR", "ALPHA CAPTURE · FICTIONAL CR"),
+    image("orders", "Keep orders under control", "Review a limit order's updated CR reservation, trigger price, and expiry before saving. Opening the editor submits no trade.", orders, "Afterhours limit-order editor with budget, trigger price, expiry, and a preview of reserved and free fictional CR", "ALPHA CAPTURE · FICTIONAL CR"),
+    image("news", "A market with a shared story", "Follow fictional shutdowns and network updates, then jump to affected coins. The wire reports events that already happened; headlines do not predict the next price.", news, "Afterhours market wire with fictional coin shutdowns, network updates, filtering, and links to affected coins", "ALPHA CAPTURE · FICTIONAL CR")
   ]
 };
 
