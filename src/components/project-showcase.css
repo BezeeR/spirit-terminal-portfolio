@@ -1,5 +1,5 @@
-.visual-frame.has-showcase { display:block; min-height:0; padding:48px 18px 18px; }
-.project-showcase { min-width:0; --scene-line:rgba(0,168,255,.26); }
+.visual-frame.has-showcase { display:block; min-width:0; max-width:100%; min-height:0; padding:48px 18px 18px; }
+.project-showcase { width:100%; max-width:100%; min-width:0; contain:inline-size; --scene-line:rgba(0,168,255,.26); }
 .showcase-screen { position:relative; min-width:0; overflow:hidden; border:1px solid var(--line); background:#101013; }
 .showcase-track { display:flex; width:100%; height:clamp(260px,36vh,420px); overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior:contain; scrollbar-width:none; }
 .showcase-track::-webkit-scrollbar { display:none; }
