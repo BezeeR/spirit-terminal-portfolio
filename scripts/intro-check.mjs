@@ -186,8 +186,19 @@ try {
     await radioViewport(mobile.page);
     assert.equal(await mobile.page.locator('.boot-screen').count(), 0, 'Touch returns skip the remembered boot screen');
     assert.equal(await mobile.page.evaluate(() => window.__radio.playCalls), 0, 'Touch returns keep native Play instead of attempting autoplay');
-    await mobile.page.frameLocator('.radio-video-host').getByRole('button', { name: 'Play video', exact: true }).tap();
+    // Return visits retain the project position. Scroll as a visitor would,
+    // then verify the cross-origin control is clear of sticky navigation.
+    await mobile.page.locator('.radio-video-frame').evaluate(async frame => {
+      frame.scrollIntoView({block:'center',behavior:'instant'});
+      await new Promise(requestAnimationFrame);
+    });
+    const returningPlay=mobile.page.frameLocator('.radio-video-host').getByRole('button', {name:'Play video',exact:true});
+    const returningBox=await returningPlay.boundingBox();
+    assert(returningBox, 'Returning native Play has a visible target');
+    assert(await mobile.page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.classList.contains('radio-video-host'),{x:returningBox.x+returningBox.width/2,y:returningBox.y+returningBox.height/2}), 'Returning native Play is unobscured');
+    await returningPlay.tap();
     await playing(mobile.page);
+    assert.equal(await mobile.page.evaluate(()=>location.hash),'#afterhours','native Play does not activate project navigation');
     await mobile.page.getByRole('button', { name: 'Collapse video player', exact: true }).first().tap();
     await mobile.page.reload();
     await mobile.page.getByRole('heading', { name: 'Afterhours', exact: true }).waitFor();

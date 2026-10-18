@@ -4,6 +4,8 @@ Each project can be explored inside the portfolio. **View Project** opens a nati
 
 The viewer contains its focus, closes with Escape, restores the invoking control, and leaves the selected project and radio intact. **Inspect Image** displays a screenshot at the available width with vertical scrolling; **Fit Image** restores the whole frame. Small and landscape screens can scroll the viewer body while its close control remains available. Missing images retain their caption and allow navigation to another scene.
 
+Representation labels appear above the artwork; Expand and navigation controls sit below it. Single-scene previews omit scene numbers and disabled arrows. The CardSlate Website illustration places its headline and product window in separate grid columns on a fitted canvas, so the copy never covers the product preview.
+
 ## Media provenance
 
 | Project | Included media | Representation |
@@ -30,6 +32,6 @@ CardSlate Desktop uses **View Product**, linking to its product website instead 
 
 ## Verification
 
-The existing browser suite covers all eight projects, fourteen layouts, contact focus, deep links, keyboard navigation, blocked storage, and the first-visit/returning radio flows. `scripts/showcase-check.mjs` adds three populated galleries at seven layouts (320×568 through 2580×1440), 125% text, automated WCAG A/AA checks, real emulated touch swipes, reduced-motion and smooth navigation, scene keyboard isolation, native modal focus/Escape/return, image inspection, and missing-image recovery. It asserts no third-party media requests from browsing.
+The existing browser suite covers all eight projects, fourteen layouts, contact focus, deep links, keyboard navigation, blocked storage, and the first-visit/returning radio flows. `scripts/showcase-check.mjs` adds four populated galleries at seven layouts (320×568 through 2580×1440), 125% text, automated WCAG A/AA checks, real emulated touch swipes, reduced-motion and smooth navigation, scene keyboard isolation, native modal focus/Escape/return, image inspection, and missing-image recovery. It checks that labels and controls do not cover the artwork, that CardSlate Website copy and product panels do not overlap or clip in inline and expanded views, and that browsing makes no third-party media requests.
 
 GitHub CI saves the gallery captures and JSON results as `project-showcase-captures`, and retains the existing failure artifact. Build, six HTTP/security/cache tests, and dependency audit also run. This is automated Chromium verification; physical phones, Safari, human screen-reader behavior, and native YouTube playback remain manual checks.
