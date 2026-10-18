@@ -5,7 +5,7 @@
 .showcase-track::-webkit-scrollbar { display:none; }
 .showcase-slide { position:relative; flex:0 0 100%; width:100%; min-width:0; height:100%; display:grid; place-items:center; scroll-snap-align:start; scroll-snap-stop:always; overflow:hidden; }
 .showcase-image-scroll { position:absolute; inset:0; display:grid; place-items:center; width:100%; height:100%; min-height:0; }
-.showcase-image-scroll img { display:block; width:100%; height:100%; object-fit:contain; }
+.showcase-image-scroll img { position:absolute; inset:0; display:block; min-width:0; min-height:0; width:100%; height:100%; object-fit:contain; }
 .showcase-slide video { width:100%; height:100%; object-fit:contain; }
 .showcase-illustration { position:absolute; inset:0; width:100%; height:100%; padding:24px; overflow:hidden; background:radial-gradient(ellipse at 35% 15%,rgba(0,168,255,.08),transparent 70%); }
 .showcase-illustration-content { position:absolute; top:50%; left:50%; width:calc(100% - 48px); max-width:940px; transform:translate(-50%,-50%) scale(var(--illustration-scale,1)); transform-origin:center; }
@@ -65,7 +65,7 @@
 .expanded-showcase .showcase-illustration { padding:clamp(16px,3vw,44px); }
 .expanded-showcase .showcase-illustration .device { max-width:940px; }
 .is-inspecting .showcase-slide[aria-hidden="false"] .showcase-image-scroll { display:block; overflow:auto; overscroll-behavior:contain; }
-.is-inspecting .showcase-slide[aria-hidden="false"] img { height:auto; min-height:0; object-fit:initial; }
+.is-inspecting .showcase-slide[aria-hidden="false"] img { position:relative; inset:auto; height:auto; min-height:0; object-fit:initial; }
 .project-viewer-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:13px 22px; border-top:1px solid var(--line); background:rgba(0,0,0,.14); color:#aeb2c0; font:600 .55rem var(--font-mono); letter-spacing:.06em; line-height:1.5; }
 .project-viewer-footer a { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 14px; border:1px solid var(--cyan-line); color:#69c8ff; background:rgba(0,168,255,.05); }
 .viewer-requirement { color:#c4a2d6; }

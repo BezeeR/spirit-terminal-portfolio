@@ -71,6 +71,8 @@ export function ProjectShowcase({ project, initialIndex = 0, expanded = false, o
   if (!item) return null;
   return (
     <section className={`project-showcase${expanded ? " expanded-showcase" : ""}${inspect ? " is-inspecting" : ""}`} aria-label={`${project.title} project gallery`} aria-roledescription="carousel"
+      onTouchStart={event => event.stopPropagation()}
+      onTouchEnd={event => event.stopPropagation()}
       onKeyDown={event => {
         if ((event.target as HTMLElement).closest("video, input, a") || event.altKey || event.ctrlKey || event.metaKey) return;
         const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : event.key === "ArrowLeft" ? current.current - 1 : event.key === "ArrowRight" ? current.current + 1 : null;

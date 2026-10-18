@@ -82,15 +82,32 @@ try {
   page.on('pageerror',error=>errors.push(error.message));
   await enter(page);
   const inline=page.locator('.visual-column .project-showcase'), track=inline.locator('.showcase-track');
-  await track.scrollIntoViewIfNeeded();
+  await track.evaluate(async el => {
+    for(let node=el;node;node=node.parentElement) {
+      await Promise.all(node.getAnimations().filter(animation=>animation.effect.getComputedTiming().iterations!==Infinity).map(animation=>animation.finished.catch(()=>{})));
+    }
+    // Position vertically without letting the page's smooth-scroll animation
+    // move the target after CDP touch coordinates have been sampled.
+    el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+    await new Promise(requestAnimationFrame);
+  });
   const box=await track.boundingBox(), client=await context.newCDPSession(page);
+  const geometry = await track.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    const hit=document.elementFromPoint(rect.x + el.clientWidth * .85, rect.y + el.clientHeight * .5);
+    return { bounds: rect.toJSON(), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, touchAction: getComputedStyle(el).touchAction, hit: hit?.tagName, inGallery: !!hit?.closest('.project-showcase'), scrollY };
+  });
+  console.log('Touch gallery geometry', JSON.stringify(geometry));
+  assert.equal(geometry.inGallery,true,'native touch starts on the gallery after page positioning settles');
   await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width*.85,y:box.y+box.height*.5}]});
   for(let step=1;step<=8;step++) {
     await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box.x+box.width*(.85-.7*step/8),y:box.y+box.height*.5}]});
     await page.waitForTimeout(20);
+    if(step===4||step===8) console.log('Touch move',step,await track.evaluate(el=>el.scrollLeft));
   }
   await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await page.waitForFunction(()=>Number(document.querySelector('.visual-column .showcase-track').scrollLeft)>50);
+  console.log('Touch released',await track.evaluate(el=>el.scrollLeft));
+  await page.waitForFunction(()=>Number(document.querySelector('.visual-column .showcase-track').scrollLeft)>50,undefined,{timeout:5000});
   await page.waitForTimeout(600);
   assert.equal(await page.evaluate(()=>location.hash),'#afterhours','a real horizontal swipe stays inside the selected project');
   await inline.getByRole('button',{name:/^03 /}).click();
