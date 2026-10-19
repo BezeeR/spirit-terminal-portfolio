@@ -5,7 +5,7 @@ import orders from "../assets/afterhours-orders.webp";
 import news from "../assets/afterhours-news.webp";
 import type { Project } from "./projects";
 
-export type ShowcaseScene = "overview" | "checkout" | "insights" | "packs" | "decks" | "charts" | "pnl" | "orders" | "news";
+export type ShowcaseScene = "overview" | "checkout" | "insights" | "packs" | "decks";
 export type ProjectMedia = {
   id: string;
   title: string;
