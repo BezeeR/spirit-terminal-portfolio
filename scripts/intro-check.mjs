@@ -186,15 +186,12 @@ try {
     await radioViewport(mobile.page);
     assert.equal(await mobile.page.locator('.boot-screen').count(), 0, 'Touch returns skip the remembered boot screen');
     assert.equal(await mobile.page.evaluate(() => window.__radio.playCalls), 0, 'Touch returns keep native Play instead of attempting autoplay');
-    // Browser scroll restoration can finish after the player becomes ready.
-    // Settle the real tap target before sampling its position and hit test.
+    // Use the real cross-origin tap, including Playwright's scroll/actionability
+    // checks, and verify the resulting playback and project selection.
     const returningPlay=mobile.page.frameLocator('.radio-video-host').getByRole('button', {name:'Play video',exact:true});
-    await returningPlay.tap({trial:true});
-    const returningBox=await returningPlay.boundingBox();
-    assert(returningBox, 'Returning native Play has a visible target');
-    assert(await mobile.page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.classList.contains('radio-video-host'),{x:returningBox.x+returningBox.width/2,y:returningBox.y+returningBox.height/2}), 'Returning native Play is unobscured');
     await returningPlay.tap();
     await playing(mobile.page);
+    assert.equal(await mobile.page.evaluate(()=>window.__radio.nativePlayCalls),1,'a return visit starts through the native video control');
     assert.equal(await mobile.page.evaluate(()=>location.hash),'#afterhours','native Play does not activate project navigation');
     await mobile.page.getByRole('button', { name: 'Collapse video player', exact: true }).first().tap();
     await mobile.page.reload();
@@ -289,7 +286,14 @@ try {
   await writeFile(`${out}/intro-checks.json`, JSON.stringify({ results, errors }, null, 2));
   console.log(`Passed ${results.length} intro/music checks, including touch-native Play, first/return visits, blocked autoplay, quiet preferences, cancelled startup, restricted storage, and API retry.`);
 } catch (error) {
-  if (currentPage && !currentPage.isClosed()) await currentPage.screenshot({ path: `${out}/intro-failure.png`, fullPage:true }).catch(() => {});
+  if (currentPage && !currentPage.isClosed()) {
+    await currentPage.evaluate(()=>{
+      const frame=document.querySelector('.radio-video-host'), rect=frame?.getBoundingClientRect();
+      return {hash:location.hash,viewport:{width:innerWidth,height:innerHeight,scrollY},radio:window.__radio,
+        frame:rect?.toJSON(),centerHit:rect?document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2)?.className:null};
+    }).then(data=>writeFile(`${out}/intro-failure.json`,JSON.stringify(data,null,2))).catch(()=>{});
+    await currentPage.screenshot({ path: `${out}/intro-failure.png`, fullPage:true }).catch(() => {});
+  }
   throw error;
 } finally {
   await browser.close();
