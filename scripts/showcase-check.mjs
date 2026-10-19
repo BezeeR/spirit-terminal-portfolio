@@ -12,7 +12,7 @@ const server = createApp(resolve('dist')).listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ executablePath: process.env.PORTFOLIO_BROWSER_EXECUTABLE_PATH || undefined, args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] });
-const errors = [], results = [];
+const errors = [], results = [], motionNavigation = [];
 let currentPage;
 const layouts = [[320,568],[390,844],[667,375],[1024,768],[1440,900],[1920,1080],[2580,1440]];
 const galleryProjects = [['Afterhours','afterhours',5],['TCG Buds Sim','tcg-buds-pack-night',3],['CardSlate Desktop','cardslate-desktop',3],['CardSlate Website','cardslate-web',1]];
@@ -115,6 +115,49 @@ try {
     await context.close();
   }
 
+  for (const width of [390,1440]) {
+    const motion=await browser.newContext({viewport:{width,height:900},hasTouch:width<600,isMobile:width<600,reducedMotion:'no-preference'});
+    const page=currentPage=await motion.newPage();
+    page.on('pageerror',error=>errors.push(error.message));
+    await enter(page);
+    const client=await motion.newCDPSession(page);
+    await client.send('Emulation.setCPUThrottlingRate',{rate:4});
+    const inline=page.locator('.visual-column .project-showcase');
+    await inline.locator('.showcase-track').scrollIntoViewIfNeeded();
+    const navigation=await inline.evaluate(async root=>{
+      const track=root.querySelector('.showcase-track'), buttons=root.querySelectorAll('.showcase-filmstrip button');
+      const jumps=[];
+      for(const target of [buttons.length-1,0]) {
+        const start=performance.now();buttons[target].click();
+        while(performance.now()-start<1000) {
+          await new Promise(requestAnimationFrame);
+          if(buttons[target].hasAttribute('aria-current')&&Math.abs(track.scrollLeft-target*track.clientWidth)<2)break;
+        }
+        jumps.push(Math.round(performance.now()-start));
+      }
+      // All clicks arrive before a frame: navigation must use the latest request.
+      const next=root.querySelector('[aria-label="Next scene"]');
+      next.click();next.click();next.click();
+      return jumps;
+    });
+    assert(navigation.every(ms=>ms<500),`${width}: control navigation must reach its destination promptly under a 4× CPU slowdown (${navigation} ms)`);
+    await scene(page,inline,4);
+    await page.waitForTimeout(200);
+    await scene(page,inline,4);
+    await inline.getByRole('button',{name:/^Expand /}).click();
+    const dialog=page.getByRole('dialog',{name:'Afterhours',exact:true});
+    const gallery=dialog.locator('.project-showcase');
+    await scene(page,gallery,4);
+    assert.equal(await page.locator('.broadcast-atmosphere').evaluate(el=>el.classList.contains('is-paused')&&el.getAnimations({subtree:true}).every(a=>a.playState!=='running')),true,'covered background animations pause while the viewer is open');
+    await gallery.getByRole('button',{name:'INSPECT IMAGE',exact:true}).click();
+    await page.waitForTimeout(200);
+    assert.equal(await gallery.getByRole('button',{name:'FIT IMAGE',exact:true}).getAttribute('aria-pressed'),'true','a settled programmatic scroll must not undo image inspection');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.broadcast-atmosphere.is-paused').count(),0,'closing the viewer resumes the background');
+    motionNavigation.push({width,cpuSlowdown:4,jumpMs:navigation,rapidSelection:'passed',backgroundPause:'passed'});
+    await motion.close();
+  }
+
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});
   const page=currentPage=await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));
@@ -180,8 +223,8 @@ try {
   assert.equal(await offlineGallery.locator('.showcase-slide[aria-hidden="false"]').getByText('PREVIEW OFFLINE',{exact:true}).count(),0,'another capture still loads after the first image fails');
   await offline.close();
   assert.deepEqual(errors,[]);
-  await writeFile(`${out}/checks.json`,JSON.stringify({results,touchSwipe:'passed',focusReturn:'passed',keyboardIsolation:'passed',imageFailure:'passed',noExternalMedia:'passed',errors},null,2));
-  console.log(`PASS project gallery: ${layouts.length*galleryProjects.length} larger-text project/layout combinations, unobscured preview artwork, WCAG checks, native touch swipe, smooth navigation, thumbnails, inspect mode, modal focus/Escape, project isolation, and missing-image recovery.`);
+  await writeFile(`${out}/checks.json`,JSON.stringify({results,motionNavigation,touchSwipe:'passed',focusReturn:'passed',keyboardIsolation:'passed',imageFailure:'passed',noExternalMedia:'passed',errors},null,2));
+  console.log(`PASS project gallery: ${layouts.length*galleryProjects.length} larger-text project/layout combinations, unobscured preview artwork, WCAG checks, native touch swipe, prompt motion-enabled navigation under CPU slowdown, rapid selection, thumbnails, inspect mode, modal focus/Escape, background pause/resume, project isolation, and missing-image recovery.`);
 } catch(error) {
   if(currentPage&&!currentPage.isClosed()) {
     await currentPage.screenshot({path:`${out}/failure.png`,fullPage:true}).catch(()=>{});

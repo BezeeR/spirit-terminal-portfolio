@@ -124,7 +124,7 @@ function App() {
       <PortfolioArrival />
       <a className="skip-link" href="#project-content">Skip to project content</a>
       <div className="site-shell" style={projectStyle}>
-        <BroadcastAtmosphere />
+        <BroadcastAtmosphere paused={contactOpen || viewerIndex !== null} />
         <div className="vhs-lines" aria-hidden="true" />
 
         <header className="topbar">

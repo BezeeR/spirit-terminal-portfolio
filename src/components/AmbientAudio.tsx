@@ -334,7 +334,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          const player = new YT.Player(host, {
+          new YT.Player(host, {
             width: "100%",
             height: "100%",
             videoId: TRACKS[activeTrackIndexRef.current].id,
