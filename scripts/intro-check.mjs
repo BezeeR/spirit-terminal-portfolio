@@ -186,13 +186,10 @@ try {
     await radioViewport(mobile.page);
     assert.equal(await mobile.page.locator('.boot-screen').count(), 0, 'Touch returns skip the remembered boot screen');
     assert.equal(await mobile.page.evaluate(() => window.__radio.playCalls), 0, 'Touch returns keep native Play instead of attempting autoplay');
-    // Return visits retain the project position. Scroll as a visitor would,
-    // then verify the cross-origin control is clear of sticky navigation.
-    await mobile.page.locator('.radio-video-frame').evaluate(async frame => {
-      frame.scrollIntoView({block:'center',behavior:'instant'});
-      await new Promise(requestAnimationFrame);
-    });
+    // Browser scroll restoration can finish after the player becomes ready.
+    // Settle the real tap target before sampling its position and hit test.
     const returningPlay=mobile.page.frameLocator('.radio-video-host').getByRole('button', {name:'Play video',exact:true});
+    await returningPlay.tap({trial:true});
     const returningBox=await returningPlay.boundingBox();
     assert(returningBox, 'Returning native Play has a visible target');
     assert(await mobile.page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.classList.contains('radio-video-host'),{x:returningBox.x+returningBox.width/2,y:returningBox.y+returningBox.height/2}), 'Returning native Play is unobscured');
